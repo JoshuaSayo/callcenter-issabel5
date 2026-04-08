@@ -2,6 +2,82 @@
 
 ---
 
+## 50. Predictor AMI Enumeration Timeout (Startup Race Condition)
+**Date**: 2026-03-28
+
+**Problem**: Dialer stopped placing calls entirely after service restart. The CampaignProcess froze permanently on its first campaign review cycle, blocking all call placement. This occurred when the dialer service started before Asterisk AMI was fully ready.
+
+**Root Cause**: Race condition on first campaign cycle after dialer restart. The CampaignProcess connected to AMI and immediately asked AMIEventProcess for queue prediction info. But AMIEventProcess had just connected to AMI at the same second and hadn't populated its QueueShadow yet, returning "queue not found". The CampaignProcess then fell into a Predictor fallback path that sent `CoreShowChannels`/`QueueStatus` AMI commands and waited for response events in `_esperarEnumeracion()`. This wait loop had **no timeout** — if the AMI response events were not received or not matched, the process hung in `select()` indefinitely (observed 1.5+ hours). The HubProcess did not detect the hang because the process was still alive (just blocked).
+
+**Solution**: Added a 10-second timeout to `_esperarEnumeracion()` in `Predictor.class.php`. On timeout, the method logs a warning and returns `FALSE`. The callers in `examinarColas()` check the return value — on `FALSE`, they clean up event handlers and return `FALSE` to the caller. This causes `$queueInfo` to remain `NULL` in `_actualizarCampanias()`, gracefully skipping call placement for that cycle. On the next cycle (3 seconds later), the QueueShadow is populated and the Predictor fallback is not triggered.
+
+**Files**:
+- `setup/dialer_process/dialer/Predictor.class.php`
+
+**Changes**:
+- `_esperarEnumeracion()` (line 117): Added `$iTimeoutStart = time()` before the loop and a 10-second timeout check inside the loop. Returns `FALSE` on timeout with a WARN log, `TRUE` on success.
+- `examinarColas()` (lines 78-85): Check `_esperarEnumeracion()` return after `CoreShowChannels` — on `FALSE`, clean up handlers and return `FALSE`
+- `examinarColas()` (lines 89-96): Check `_esperarEnumeracion()` return after `QueueStatus` — on `FALSE`, clean up handlers and return `FALSE`
+
+**Log Collection**:
+```bash
+# Check if timeout was triggered (indicates Asterisk/AMI startup race)
+grep "timeout.*AMI enumeration" /opt/issabel/dialer/dialerd.log | tail -10
+
+# Verify CampaignProcess is running cycles normally after restart
+grep -E "CAMPAIGN_ALLOC|Pass 1 COMPLETE" /opt/issabel/dialer/dialerd.log | tail -10
+
+# Verify CampaignProcess is not frozen (should show recent timestamps)
+grep "CampaignProcess.*CAMPAIGN REVIEW CYCLE" /opt/issabel/dialer/dialerd.log | tail -5
+```
+
+---
+
+## 49. Comprehensive Orphaned Call Cleanup (All Active Statuses)
+**Date**: 2026-03-19
+
+**Problem**: Outgoing campaigns stopped placing calls because orphaned `Success` calls with `end_time IS NULL` from previous dialer sessions (22+ days old) inflated `_countActiveCalls()`, consuming the entire channel budget (`effective_max = 0`). This was a gap exposed by Change #47 — it added `Success` calls to the active count but Change #46's cleanup only handled `Placing` status.
+
+**Root Cause**: The startup cleanup from Change #46 only handled `Placing` calls. All other pre-hangup statuses (`Ringing`, `OnQueue`, `OnHold`, `Success` with NULL end_time) could become orphaned if the dialer crashed/restarted while calls were in progress. No runtime cleanup existed for connected calls.
+
+**Solution**: Implemented comprehensive two-layer cleanup:
+
+**Startup Cleanup** (runs once at dialer start):
+- Extended `Placing` cleanup to include `Ringing` and `OnQueue` → mark as `Failure`
+- Added new cleanup for `OnHold` and `Success` (NULL end_time) → mark as `Hangup` with `end_time = start_time`
+
+**Runtime Cleanup** (runs every campaign cycle):
+- Extended `_cleanOrphanedPlacingCalls()` to include `Ringing` (5-minute timeout)
+- Added new `_cleanOrphanedConnectedCalls()` for `Success`/`OnHold` with NULL end_time (2-hour timeout)
+
+**Files**:
+- `setup/dialer_process/dialer/CampaignProcess.class.php`
+
+**Changes**:
+- Extended startup cleanup from `status = 'Placing'` to `status IN ('Placing', 'Ringing', 'OnQueue')` (lines 159-163)
+- Added startup cleanup for connected calls `OnHold` and `Success` with NULL end_time (lines 169-187)
+- Extended runtime cleanup from `status = 'Placing'` to `status IN ('Placing', 'Ringing')` (line 2420)
+- Added `_cleanOrphanedConnectedCalls()` method for runtime connected call cleanup (lines 2446-2472)
+- Added call to `_cleanOrphanedConnectedCalls()` in `_actualizarCampanias()` (line 456-458)
+
+**Log Collection**:
+```bash
+# Verify orphaned calls were cleaned at startup
+grep -E "orphaned.*(Placing|Ringing|OnQueue|OnHold|Success|connected)" /opt/issabel/dialer/dialerd.log | tail -20
+
+# Monitor active call counts after fix
+grep -E "_countActiveCalls|channel_budget|calls_to_place" /opt/issabel/dialer/dialerd.log | tail -50
+
+# Verify no remaining orphaned calls in database
+mysql -u root -p$(grep mysqlrootpwd /etc/issabel.conf | cut -d= -f2) call_center -e "
+SELECT status, COUNT(*) as count FROM calls
+WHERE status IN ('Placing','Ringing','OnQueue','OnHold')
+   OR (status = 'Success' AND end_time IS NULL)
+GROUP BY status;"
+```
+
+---
+
 ## 48. Outgoing Campaign Panel Trunk Display Delay
 **Date**: 2026-03-10
 
