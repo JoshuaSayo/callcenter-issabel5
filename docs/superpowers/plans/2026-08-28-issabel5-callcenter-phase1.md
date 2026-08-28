@@ -38,7 +38,7 @@
 - Consumes: approved specification commit `ee5f7c0` on local branch `develop`.
 - Produces: fork remote `origin`, upstream remote `upstream`, and five documents consumed by every later task.
 
-- [ ] **Step 1: Verify the GitHub identity and fork state**
+- [x] **Step 1: Verify the GitHub identity and fork state**
 
 Run:
 
@@ -50,13 +50,13 @@ gh repo view JoshuaSayo/callcenter-issabel5 --json nameWithOwner,defaultBranchRe
 Expected: login is `JoshuaSayo`. If the second command reports that the repository does not exist, run exactly:
 
 ```bash
-gh repo fork ISSABELPBX/callcenter-issabel5 --clone=false --remote=false
+gh repo fork ISSABELPBX/callcenter-issabel5 --clone=false
 gh repo view JoshuaSayo/callcenter-issabel5 --json nameWithOwner,defaultBranchRef
 ```
 
 Expected: the final command returns `JoshuaSayo/callcenter-issabel5`. Do not create a second repository with another name.
 
-- [ ] **Step 2: Configure remotes and publish the design commits**
+- [x] **Step 2: Configure remotes and publish the design commits**
 
 Run:
 
@@ -69,7 +69,7 @@ git push -u origin develop
 
 Expected: `upstream` points to `ISSABELPBX/callcenter-issabel5`, `origin` points to `JoshuaSayo/callcenter-issabel5`, and `develop` tracks `origin/develop`.
 
-- [ ] **Step 3: Create the initial records with concrete issue rows**
+- [x] **Step 3: Create the initial records with concrete issue rows**
 
 Use these headings and identifiers:
 
@@ -111,7 +111,7 @@ Use these exact initial identifiers and severities:
 
 Create `docs/test-evidence.md` with sections `Environment`, `Static`, `Simulated`, `Staging`, `Removal/Reinstallation`, and `Limitations`. Create `docs/compatibility-matrix.md` with separate columns `Documented`, `Observed externally`, and `Verified on clone`. Create `docs/architecture.md` with the process diagram from the specification plus sections for process ownership, persistent state, AMI/AGI boundaries, authoritative state, restart reconciliation, and logs; label every unresolved statement `Hypothesis`.
 
-- [ ] **Step 4: Validate the document contract**
+- [x] **Step 4: Validate the document contract**
 
 Run:
 
@@ -124,7 +124,7 @@ grep -q 'Hypothesis' docs/architecture.md
 
 Expected: exit status `0` from every command.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/project-status.md docs/issue-register.md docs/test-evidence.md docs/compatibility-matrix.md docs/architecture.md
