@@ -15,7 +15,7 @@ Phase 1 — compatibility, architecture, and lifecycle safety baseline.
 
 ## Active
 
-- Task 3 shared lifecycle safety primitives.
+- Task 4 shell installer fail-fast and cleanup integration.
 
 ## Blockers
 
@@ -24,7 +24,7 @@ Phase 1 — compatibility, architecture, and lifecycle safety baseline.
 
 ## Exact next action
 
-Write and run the failing cleanup-containment tests from Task 3.
+Write and run installer false-success tests for PHP, systemd, Asterisk argument separation, and unknown arguments.
 
 ## Branch and remotes
 

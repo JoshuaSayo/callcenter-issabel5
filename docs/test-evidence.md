@@ -52,6 +52,18 @@ Each entry records environment, command or observation, result, and limitation. 
 - Label: simulated command-stub evidence; not staging verification.
 - Limitation: command stubs isolate external RPM, PHP, MariaDB, Asterisk, Apache, and systemd behavior and are not proof that VM 127 supports the collector.
 
+### E-P1-006 — lifecycle safety RED/GREEN
+
+- Date: 2026-08-28 Asia/Manila.
+- RED command: `bash tests/install/test_lifecycle_common.sh`.
+- RED exit: `1`; decisive output identified missing `build/5.0/lib/callcenter-lifecycle.sh`.
+- First GREEN attempt: test harness failed because stderr redirection was attached to a separate shell command; production behavior was not changed for this harness failure.
+- Final commands: `bash tests/install/test_lifecycle_common.sh`; `bash tests/install/run.sh`; `bash -n build/5.0/lib/callcenter-lifecycle.sh tests/install/test_lifecycle_common.sh`.
+- Final exits: `0`, `0`, `0`.
+- Decisive output: `PASS test_lifecycle_common`; aggregate also reports `PASS test_baseline_collector`.
+- Verified behavior: registered temporary directories are removed; a sentinel outside allowed roots survives; relative install roots and unsafe cleanup registration are rejected; required command failures retain their stage name.
+- Label: local filesystem behavior with isolated temporary directories; no PBX mutation.
+
 ## Staging
 
 ### E-P1-003 — unauthenticated reachability

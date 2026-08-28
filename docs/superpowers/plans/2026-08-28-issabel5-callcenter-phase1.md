@@ -262,7 +262,7 @@ git commit -m "test: add secret-safe Issabel baseline collector"
 - Produces: `cc_root_path`, `cc_die`, `cc_require_root`, `cc_run`, `cc_make_temp`, `cc_register_temp`, and `cc_cleanup` for both lifecycle scripts.
 - Enforces: `CC_INSTALL_ROOT` is empty for production or an absolute test root; cleanup accepts only registered directories named `issabel-callcenter.*` below rooted `/tmp` or `/usr/src`.
 
-- [ ] **Step 1: Write failing tests for root mapping and cleanup containment**
+- [x] **Step 1: Write failing tests for root mapping and cleanup containment**
 
 Test these assertions in separate subshells so `cc_die` cannot end the runner:
 
@@ -279,13 +279,13 @@ if (cc_register_temp "$fixture_root/etc"); then
 fi
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run `bash tests/install/test_lifecycle_common.sh`.
 
 Expected: failure because the library does not exist.
 
-- [ ] **Step 3: Implement the shared library**
+- [x] **Step 3: Implement the shared library**
 
 Use `set -Eeuo pipefail`, an indexed `CC_TEMP_DIRS` array, and these contracts:
 
@@ -305,7 +305,7 @@ cc_run() {
 
 `cc_make_temp OUTPUT_VARIABLE ROOTED_PARENT LABEL` must require `LABEL` to match `[A-Za-z0-9_-]+`, create the rooted parent, call `mktemp -d` with template `issabel-callcenter.${LABEL}.XXXXXX`, validate the resulting absolute path against the two allowed parents and prefix `issabel-callcenter.`, register it in the current shell, and assign it with `printf -v "$output_variable" '%s' "$path"`. Do not call it through command substitution because that would lose the registered array in a subshell. `cc_cleanup` iterates only the registered array and runs `rm -rf -- "$path"` after repeating the same validation. Install `trap cc_cleanup EXIT` in each caller, not inside the library. Reject a nonempty `CC_INSTALL_ROOT` unless it is absolute.
 
-- [ ] **Step 4: Verify success and rejection paths**
+- [x] **Step 4: Verify success and rejection paths**
 
 Run:
 
@@ -316,7 +316,7 @@ bash -n build/5.0/lib/callcenter-lifecycle.sh tests/install/test_lifecycle_commo
 
 Expected: exit `0`; the sentinel under rooted `/etc` remains present.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add build/5.0/lib/callcenter-lifecycle.sh tests/install/test_lifecycle_common.sh tests/install/run.sh
