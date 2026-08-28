@@ -145,7 +145,7 @@ git commit -m "docs: establish phase 1 engineering records"
 - Consumes: a root prefix supplied as `CALLCENTER_ROOT` for tests; production default is the real root.
 - Produces: newline-delimited `KEY=VALUE` evidence on stdout and nonzero status when a required observation fails.
 
-- [ ] **Step 1: Write the failing collector test**
+- [x] **Step 1: Write the failing collector test**
 
 The test helper must export `fail`, `assert_contains`, `assert_not_contains`, `assert_status`, and `make_stub`. The collector test creates a temporary root containing `etc/issabel.conf` with `mysqlrootpwd=collector-secret`, adds deterministic `rpm`, `uname`, `php`, `mysql`, `asterisk`, `httpd`, `systemctl`, and `sha256sum` stubs to `PATH`, and runs:
 
@@ -178,7 +178,7 @@ assert_not_contains "$output" 'collector-secret'
 
 Add a second case whose `asterisk` stub exits `1`; expect nonzero status and `ASTERISK_VERSION=ERROR`, not `UNAVAILABLE`.
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -188,7 +188,7 @@ bash tests/install/test_baseline_collector.sh
 
 Expected: failure because `tools/collect-issabel-baseline.sh` does not exist.
 
-- [ ] **Step 3: Implement the collector with stable keys**
+- [x] **Step 3: Implement the collector with stable keys**
 
 Implement these exact helpers:
 
@@ -231,7 +231,7 @@ if [[ -f "$script_dir/test_installer_lib.php" ]]; then
 fi
 ```
 
-- [ ] **Step 4: Run collector tests**
+- [x] **Step 4: Run collector tests**
 
 Run:
 
@@ -242,7 +242,7 @@ bash -n tools/collect-issabel-baseline.sh tests/install/test_helpers.sh tests/in
 
 Expected: both commands exit `0`; test output contains no fixture password.
 
-- [ ] **Step 5: Record simulated evidence and commit**
+- [x] **Step 5: Record simulated evidence and commit**
 
 Add the exact commands, exit statuses, and the label `Simulated command-stub evidence; not staging verification` to `docs/test-evidence.md`. Leave clone columns `Unverified` in the compatibility matrix.
 

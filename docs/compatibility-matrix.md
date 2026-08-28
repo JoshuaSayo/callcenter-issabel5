@@ -19,5 +19,6 @@
 | MariaDB/MySQL | `issabeldialer.service` requires `mariadb.service`; installer uses MySQL APIs | No version evidence | Unverified | Version and schema state unknown |
 | systemd | Service unit is shipped in `setup/dialer_process/issabeldialer.service` | No version evidence | Unverified | Service-manager version unknown |
 | FreePBX-derived components | Runtime reads Issabel/Asterisk configuration and `asterisk` database | No component-version evidence | Unverified | Exact component versions unknown |
+| Baseline collector | Repository contract defined in `tools/collect-issabel-baseline.sh` | Command-stub RED/GREEN tests pass under Git Bash 5.3 | Unverified | Ready for authenticated clone execution; no compatibility claim yet |
 
 No row may be promoted to **Verified on clone** without an authenticated command recorded in `docs/test-evidence.md`.

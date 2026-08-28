@@ -32,7 +32,25 @@ Each entry records environment, command or observation, result, and limitation. 
 
 ## Simulated
 
-No simulated lifecycle test exists at this checkpoint. Task 2 creates the first deterministic command-stub test.
+### E-P1-004 — baseline collector RED
+
+- Date: 2026-08-28 Asia/Manila.
+- Runtime: Git Bash 5.3.15 on Windows.
+- Command: `bash tests/install/test_baseline_collector.sh`.
+- Exit: `1`.
+- Decisive output: `FAIL: expected status 0, got 127`.
+- Interpretation: expected failure because `tools/collect-issabel-baseline.sh` did not exist.
+- Label: TDD RED; simulated command-stub evidence.
+
+### E-P1-005 — baseline collector GREEN
+
+- Date: 2026-08-28 Asia/Manila.
+- Commands: `bash tests/install/test_baseline_collector.sh`; `bash -n tools/collect-issabel-baseline.sh tests/install/test_helpers.sh tests/install/test_baseline_collector.sh tests/install/run.sh`; `bash tests/install/run.sh`.
+- Exits: `0`, `0`, `0`.
+- Decisive output: `PASS test_baseline_collector`.
+- Verified behavior: literal version/schema keys are emitted without the fixture password; required Asterisk failure returns nonzero and emits `ASTERISK_VERSION=ERROR` rather than `UNAVAILABLE`.
+- Label: simulated command-stub evidence; not staging verification.
+- Limitation: command stubs isolate external RPM, PHP, MariaDB, Asterisk, Apache, and systemd behavior and are not proof that VM 127 supports the collector.
 
 ## Staging
 

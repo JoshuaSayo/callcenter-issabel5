@@ -15,7 +15,7 @@ Phase 1 — compatibility, architecture, and lifecycle safety baseline.
 
 ## Active
 
-- Task 1 durable engineering records and source-backed architecture baseline.
+- Task 3 shared lifecycle safety primitives.
 
 ## Blockers
 
@@ -24,7 +24,7 @@ Phase 1 — compatibility, architecture, and lifecycle safety baseline.
 
 ## Exact next action
 
-Run the baseline collector tests from Task 2.
+Write and run the failing cleanup-containment tests from Task 3.
 
 ## Branch and remotes
 
