@@ -26,6 +26,7 @@ make_fixture() {
         "$fixture_root/usr/share/issabel/module_installer/callcenter" \
         "$fixture_root/usr/src" \
         "$fixture_root/tmp"
+    mkdir "$fixture_root/tmp/issabel-callcenter.sentinel"
 
     make_stub asterisk '
 if [[ "${FAIL_COMMAND:-}" == asterisk && "${2:-}" == "core reload" ]]; then exit 44; fi
@@ -54,7 +55,11 @@ exec /bin/cp "$@"
 '
     make_stub chown '[[ "${FAIL_COMMAND:-}" == chown ]] && exit 49; exit 0'
     make_stub chmod '[[ "${FAIL_COMMAND:-}" == chmod ]] && exit 50; exec /bin/chmod "$@"'
-    make_stub grep '[[ "${FAIL_COMMAND:-}" == grep ]] && exit 51; exec /bin/grep "$@"'
+    make_stub grep '
+[[ "${FAIL_COMMAND:-}" == grep ]] && exit 51
+[[ "${FAIL_COMMAND:-}" == dashboard-grep && "$*" == *ProcessesStatus* ]] && exit 51
+exec /bin/grep "$@"
+'
     make_stub sed '[[ "${FAIL_COMMAND:-}" == sed ]] && exit 52; exec /bin/sed "$@"'
     make_stub rpm '[[ "${FAIL_COMMAND:-}" == rpm ]] && exit 53; exit 0'
     make_stub id '[[ "${FAIL_COMMAND:-}" == id ]] && exit 54; exit 0'
@@ -78,11 +83,22 @@ assert_required_failure() {
 
 assert_no_temp_dirs() {
     local temp_dirs
-    temp_dirs="$(find "$fixture_root/tmp" "$fixture_root/usr/src" -mindepth 1 -maxdepth 1 -name 'issabel-callcenter.*' -print)"
+    temp_dirs="$(find "$fixture_root/tmp" "$fixture_root/usr/src" -mindepth 1 -maxdepth 1 -name 'issabel-callcenter.*' ! -name 'issabel-callcenter.sentinel' -print)"
     [[ -z "$temp_dirs" ]] || fail "temporary directories were not cleaned: $temp_dirs"
 }
 
+assert_cleanup_sentinel_survives() {
+    [[ -d "$fixture_root/tmp/issabel-callcenter.sentinel" ]] || fail 'cleanup removed an unrelated temporary directory'
+}
+
 add_dashboard() {
+    local dashboard_dir
+    dashboard_dir="$fixture_root/var/www/html/modules/dashboard/applets/ProcessesStatus"
+    mkdir -p "$dashboard_dir/images"
+    printf "'Apache' => 'icon_www.png'\n'Apache' => 'httpd'\n\$arrSERVICES[\"Apache\"][\"name_service\"] = \"Web Server\";\nif (file_exists(\"/usr/lib/systemd/system/{\$ns}.service\"))\n" > "$dashboard_dir/index.php"
+}
+
+add_dashboard_without_status_anchor() {
     local dashboard_dir
     dashboard_dir="$fixture_root/var/www/html/modules/dashboard/applets/ProcessesStatus"
     mkdir -p "$dashboard_dir/images"
@@ -94,6 +110,7 @@ make_fixture
 run_installer --local env FAIL_COMMAND=php
 assert_required_failure database-installer
 assert_no_temp_dirs
+assert_cleanup_sentinel_survives
 
 # An interrupted database install must also clean only its registered temporary path.
 make_fixture
@@ -101,6 +118,7 @@ run_installer --local env FAIL_COMMAND=php-interrupt
 test "$status" -ne 0 || fail 'interrupted PHP installation returned success'
 assert_not_contains "$output" 'installation complete'
 assert_no_temp_dirs
+assert_cleanup_sentinel_survives
 
 # Service-manager failures are required failures, not warnings.
 make_fixture
@@ -118,6 +136,22 @@ add_dashboard
 run_installer --local env
 assert_status 0 "$status"
 assert_contains "$output" 'installation complete'
+dashboard_index="$fixture_root/var/www/html/modules/dashboard/applets/ProcessesStatus/index.php"
+assert_contains "$(<"$dashboard_index")" "'Dialer'    =>  'icon_headphones.png',"
+assert_contains "$(<"$dashboard_index")" "'Dialer'    =>  'issabeldialer',"
+assert_contains "$(<"$dashboard_index")" 'Issabel Call Center Service'
+
+# Each dashboard edit requires its upstream anchor instead of silently succeeding without a change.
+make_fixture
+add_dashboard_without_status_anchor
+run_installer --local env
+assert_required_failure dashboard-status-anchor
+
+# A dashboard read error is not a missing mapping and must stop the install.
+make_fixture
+add_dashboard
+run_installer --local env FAIL_COMMAND=dashboard-grep
+assert_required_failure dashboard-icon-check
 
 # Asterisk reload must receive two arguments and a failure must stop the installer.
 make_fixture

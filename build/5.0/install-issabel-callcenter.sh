@@ -73,7 +73,7 @@ install_modules() {
 }
 
 patch_dashboard() {
-    local dashboard_dir dashboard_index
+    local dashboard_dir dashboard_index grep_status
     CC_STAGE=dashboard
     dashboard_dir="$(cc_root_path /var/www/html/modules/dashboard/applets/ProcessesStatus)"
     dashboard_index="$dashboard_dir/index.php"
@@ -83,18 +83,50 @@ patch_dashboard() {
     fi
 
     cc_run dashboard-icon cp -f "$WORK_DIR/setup/icon_headphones.png" "$dashboard_dir/images/"
-    if ! grep -q "'Dialer'" "$dashboard_index"; then
+    if grep -q "'Dialer'" "$dashboard_index"; then
+        :
+    else
+        grep_status=$?
+        if [[ "$grep_status" -ne 1 ]]; then
+            CC_STAGE=dashboard-icon-check
+            cc_die 'cannot inspect dashboard applet'
+        fi
+        cc_run dashboard-icon-anchor grep -q "'Apache'.*=>.*'icon_www.png'" "$dashboard_index"
         cc_run dashboard-icon-map sed -i "/'Apache'.*=>.*'icon_www.png'/a\\            'Dialer'    =>  'icon_headphones.png'," "$dashboard_index"
     fi
-    if ! grep -q "'Dialer'.*=>.*'issabeldialer'" "$dashboard_index"; then
+    if grep -q "'Dialer'.*=>.*'issabeldialer'" "$dashboard_index"; then
+        :
+    else
+        grep_status=$?
+        if [[ "$grep_status" -ne 1 ]]; then
+            CC_STAGE=dashboard-service-check
+            cc_die 'cannot inspect dashboard applet'
+        fi
+        cc_run dashboard-service-anchor grep -q "'Apache'.*=>.*'httpd'" "$dashboard_index"
         cc_run dashboard-service-map sed -i "/'Apache'.*=>.*'httpd'/a\\            'Dialer'    =>  'issabeldialer'," "$dashboard_index"
     fi
-    if ! grep -q 'dialerd.pid' "$dashboard_index"; then
+    if grep -q 'dialerd.pid' "$dashboard_index"; then
+        :
+    else
+        grep_status=$?
+        if [[ "$grep_status" -ne 1 ]]; then
+            CC_STAGE=dashboard-status-check
+            cc_die 'cannot inspect dashboard applet'
+        fi
+        cc_run dashboard-status-anchor grep -q '\$arrSERVICES\["Apache"\]\["name_service"\].*=.*"Web Server"' "$dashboard_index"
         cc_run dashboard-status-map sed -i '/\$arrSERVICES\["Apache"\]\["name_service"\].*=.*"Web Server"/a\        $arrSERVICES["Dialer"]["status_service"] = $this->_existPID_ByFile("/opt/issabel/dialer/dialerd.pid","issabeldialer");' "$dashboard_index"
         cc_run dashboard-activation-map sed -i '/\$arrSERVICES\["Apache"\]\["name_service"\].*=.*"Web Server"/a\        $arrSERVICES["Dialer"]["activate"] = $this->_isActivate("issabeldialer");' "$dashboard_index"
         cc_run dashboard-name-map sed -i '/\$arrSERVICES\["Apache"\]\["name_service"\].*=.*"Web Server"/a\        $arrSERVICES["Dialer"]["name_service"] = "Issabel Call Center Service";' "$dashboard_index"
     fi
-    if ! grep -q 'file_exists("/etc/systemd/system/{$ns}.service")' "$dashboard_index"; then
+    if grep -q 'file_exists("/etc/systemd/system/{$ns}.service")' "$dashboard_index"; then
+        :
+    else
+        grep_status=$?
+        if [[ "$grep_status" -ne 1 ]]; then
+            CC_STAGE=dashboard-service-file-check
+            cc_die 'cannot inspect dashboard applet'
+        fi
+        cc_run dashboard-service-file-anchor grep -q 'if (file_exists("/usr/lib/systemd/system/{$ns}.service"))' "$dashboard_index"
         cc_run dashboard-service-check sed -i 's|if (file_exists("/usr/lib/systemd/system/{$ns}.service"))|if (file_exists("/etc/systemd/system/{$ns}.service"))\n                return TRUE;\n            if (file_exists("/usr/lib/systemd/system/{$ns}.service"))|' "$dashboard_index"
     fi
 }
