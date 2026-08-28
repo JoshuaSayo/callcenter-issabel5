@@ -64,6 +64,19 @@ Each entry records environment, command or observation, result, and limitation. 
 - Verified behavior: registered temporary directories are removed; a sentinel outside allowed roots survives; relative install roots and unsafe cleanup registration are rejected; required command failures retain their stage name.
 - Label: local filesystem behavior with isolated temporary directories; no PBX mutation.
 
+### E-P1-007 — PHP installer failure propagation RED/GREEN
+
+- Date: 2026-08-28 Asia/Manila.
+- Runtime: official portable PHP `7.4.33 (cli) (NTS Visual C++ 2017 x64)` on Windows; Git Bash `C:\Program Files\Git\bin\bash.exe` for shell propagation and aggregate checks.
+- RED command: `.\.superpowers\sdd\2026-08-28-issabel5-callcenter-phase1\runtime\php-7.4.33\php.exe tests/install/test_installer_lib.php`.
+- RED exit: `255`; decisive output: `Failed opening required ... setup/installer_lib.php` because the helper library did not yet exist.
+- GREEN commands: the same portable-PHP helper command; portable-PHP `-l setup/installer_lib.php`; portable-PHP `-l setup/installer.php`; `C:\Program Files\Git\bin\bash.exe tests/install/test_install_script.sh`; and `$env:PATH = "$(Resolve-Path .\.superpowers\sdd\2026-08-28-issabel5-callcenter-phase1\runtime\php-7.4.33);$env:PATH"; & 'C:\Program Files\Git\bin\bash.exe' tests/install/run.sh`.
+- GREEN exits: all `0`.
+- Decisive output: `PASS installer_lib`; `No syntax errors detected` for both PHP files; `PASS: installer behavior tests`; aggregate `PASS test_baseline_collector`, `PASS: installer behavior tests`, `PASS test_lifecycle_common`, and `PASS installer_lib`.
+- Verified behavior: false database/file results raise installation exceptions; unavailable or malformed Asterisk output is rejected; the shell installer propagates its failing PHP stub and suppresses completion; all local install tests pass with the portable PHP runtime on Git Bash `PATH`.
+- Label: local PHP 7.4.33 unit/syntax and simulated command-stub evidence only.
+- Limitation: this does not replace Rocky Linux staging checks required in Task 8.
+
 ## Staging
 
 ### E-P1-003 — unauthenticated reachability

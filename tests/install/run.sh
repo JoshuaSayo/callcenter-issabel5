@@ -7,10 +7,8 @@ for test_file in "${test_files[@]}"; do
     bash "$test_file"
 done
 
-if [[ -f "$script_dir/test_installer_lib.php" ]]; then
-    command -v php >/dev/null || {
-        echo 'ERROR: PHP is required for installer_lib tests' >&2
-        exit 1
-    }
-    php "$script_dir/test_installer_lib.php"
-fi
+command -v php >/dev/null || {
+    echo 'ERROR: PHP is required for installer_lib tests' >&2
+    exit 1
+}
+php "$script_dir/test_installer_lib.php"
