@@ -2,7 +2,8 @@
 set -Eeuo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-for test_file in "$script_dir"/test_*.sh; do
+test_files=("$script_dir"/test_*.sh)
+for test_file in "${test_files[@]}"; do
     bash "$test_file"
 done
 

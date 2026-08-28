@@ -1,218 +1,187 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Unified installation script for Issabel CallCenter
-# Usage:
-#   ./install-issabel-callcenter.sh          # Install from GitHub
-#   ./install-issabel-callcenter.sh --local  # Install from local directory
-
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
 RELEASE='5.0.0-1'
 GITHUB_ACCOUNT='ISSABELPBX'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CC_INSTALL_ROOT="${CALLCENTER_INSTALL_ROOT:-}"
+source "$SCRIPT_DIR/lib/callcenter-lifecycle.sh"
+trap cc_cleanup EXIT
 
-# Parse arguments
 LOCAL_INSTALL=false
-if [ "$1" = "--local" ] || [ "$1" = "-l" ]; then
-    LOCAL_INSTALL=true
-fi
+WORK_DIR=''
+ASTERISK_MAJOR=''
 
-# Check Asterisk version
-VERSION=$(asterisk -rx "core show version" 2>/dev/null | awk '{print $2}' | cut -d. -f 1)
+parse_args() {
+    case "${1:-}" in
+        '') LOCAL_INSTALL=false ;;
+        --local|-l) LOCAL_INSTALL=true ;;
+        *) printf 'Usage: %s [--local|-l]\n' "$0" >&2; return 2 ;;
+    esac
+}
 
-if [ -z "$VERSION" ]; then
-    echo -e "${RED}Error: Cannot detect Asterisk version. Is Asterisk running?${NC}"
-    exit 1
-fi
+detect_asterisk_major() {
+    local output
+    output="$(asterisk -rx 'core show version')" || cc_die 'cannot query Asterisk'
+    [[ "$output" =~ Asterisk[[:space:]]+([0-9]+) ]] || cc_die 'cannot parse Asterisk version'
+    ASTERISK_MAJOR="${BASH_REMATCH[1]}"
+}
 
-if [ "$VERSION" = "11" ]; then
-    echo -e "${YELLOW}Info: Detected Asterisk 11. Using chan_agent compatibility mode.${NC}"
-    echo -e "${YELLOW}  - Agent authentication: via Asterisk (password in agents.conf)${NC}"
-    echo -e "${YELLOW}  - Agent interface: Agent/XXXX${NC}"
-    echo -e "${YELLOW}  - Agent logout: Agentlogoff AMI command${NC}"
-elif [ "$VERSION" = "13" ] || [ "$VERSION" = "16" ] || [ "$VERSION" = "18" ]; then
-    echo -e "${GREEN}Info: Detected Asterisk $VERSION. Using app_agent_pool mode.${NC}"
-    echo -e "${GREEN}  - Agent authentication: via ECCP/database${NC}"
-    echo -e "${GREEN}  - Agent interface: Local/XXXX@agents${NC}"
-    echo -e "${GREEN}  - Agent logout: Hangup login channel${NC}"
-else
-    echo -e "${YELLOW}Warning: Issabel CallCenter ${RELEASE} is tested with Asterisk 11/13/18. Detected version: $VERSION${NC}"
-    echo -e "${YELLOW}Proceeding with installation, but some features may not work correctly.${NC}"
-fi
-echo
-
-# Determine source directory
-if [ "$LOCAL_INSTALL" = true ]; then
-    # Find the repository root (two levels up from this script)
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
-    if [ ! -f "$REPO_ROOT/menu.xml" ]; then
-        echo -e "${RED}Error: Cannot find repository root. Expected menu.xml at $REPO_ROOT${NC}"
-        exit 1
+preflight() {
+    local command
+    CC_STAGE=preflight
+    cc_require_root
+    for command in cp chown chmod grep sed php systemctl issabel-menumerge asterisk; do
+        command -v "$command" >/dev/null 2>&1 || cc_die "required command not found: $command"
+    done
+    if [[ "$LOCAL_INSTALL" == false ]]; then
+        command -v git >/dev/null 2>&1 || cc_die 'required command not found: git'
     fi
+    detect_asterisk_major
+    case "$ASTERISK_MAJOR" in
+        11|13|16|18) ;;
+        *) cc_die "unsupported Asterisk version: $ASTERISK_MAJOR" ;;
+    esac
+}
 
-    echo -e "${GREEN}Installing Issabel CallCenter from local directory: $REPO_ROOT${NC}"
-    WORK_DIR="$REPO_ROOT"
-else
-    echo -e "${GREEN}Installing Issabel CallCenter from GitHub: ${GITHUB_ACCOUNT}/callcenter-issabel5${NC}"
+validate_source_layout() {
+    CC_STAGE=source-layout
+    [[ -f "$WORK_DIR/menu.xml" ]] || cc_die "missing source file: $WORK_DIR/menu.xml"
+    [[ -d "$WORK_DIR/modules" ]] || cc_die "missing source directory: $WORK_DIR/modules"
+    [[ -f "$WORK_DIR/setup/installer.php" ]] || cc_die "missing source file: $WORK_DIR/setup/installer.php"
+    [[ -x "$WORK_DIR/setup/dialer_process/dialer/dialerd" ]] || cc_die "missing executable: $WORK_DIR/setup/dialer_process/dialer/dialerd"
+    [[ -f "$WORK_DIR/setup/dialer_process/issabeldialer.service" ]] || cc_die "missing source file: $WORK_DIR/setup/dialer_process/issabeldialer.service"
+}
 
-    # Install git if not present
-    if ! command -v git &> /dev/null; then
-        echo "Installing git..."
-        dnf -y install git || yum -y install git
-    fi
-
-    # Clone repository
-    cd /usr/src
-    rm -rf callcenter
-    echo "Cloning repository..."
-    if ! git clone "https://github.com/${GITHUB_ACCOUNT}/callcenter-issabel5.git" callcenter; then
-        echo -e "${RED}Error: Failed to clone repository${NC}"
-        exit 1
-    fi
-    WORK_DIR="/usr/src/callcenter"
-fi
-
-cd "$WORK_DIR"
-
-echo "Installing modules..."
-# Install modules (force overwrite)
-chown asterisk.asterisk modules/* -R
-/bin/cp -prf modules/* /var/www/html/modules/
-
-echo "Patching dashboard ProcessesStatus applet..."
-DASHBOARD_DIR="/var/www/html/modules/dashboard/applets/ProcessesStatus"
-DASHBOARD_INDEX="$DASHBOARD_DIR/index.php"
-
-if [ -f "$DASHBOARD_INDEX" ]; then
-    # Copy the dialer icon
-    /bin/cp -f "$WORK_DIR/setup/icon_headphones.png" "$DASHBOARD_DIR/images/"
-
-    # 1. Add Dialer icon mapping (after 'Apache' => 'icon_www.png')
-    if ! grep -q "'Dialer'" "$DASHBOARD_INDEX"; then
-        sed -i "/'Apache'.*=>.*'icon_www.png'/a\\            'Dialer'    =>  'icon_headphones.png'," "$DASHBOARD_INDEX"
-    fi
-
-    # 2. Add Dialer service mapping in _controlServicio (after 'Apache' => 'httpd')
-    if ! grep -q "'Dialer'.*=>.*'issabeldialer'" "$DASHBOARD_INDEX"; then
-        sed -i "/'Apache'.*=>.*'httpd'/a\\            'Dialer'    =>  'issabeldialer'," "$DASHBOARD_INDEX"
-    fi
-
-    # 3. Add Dialer status detection (after Apache status line in getStatusServices)
-    if ! grep -q 'dialerd.pid' "$DASHBOARD_INDEX"; then
-        sed -i '/\$arrSERVICES\["Apache"\]\["name_service"\].*=.*"Web Server"/a\
-\
-        $arrSERVICES["Dialer"]["status_service"]   = $this->_existPID_ByFile("/opt/issabel/dialer/dialerd.pid","issabeldialer");\
-        $arrSERVICES["Dialer"]["activate"]     = $this->_isActivate("issabeldialer");\
-        $arrSERVICES["Dialer"]["name_service"]     = "Issabel Call Center Service";' "$DASHBOARD_INDEX"
-    fi
-
-    # 4. Fix _existService() to check /etc/systemd/system/ (for systemd services installed in /etc)
-    # Check if the fix is already applied by looking for the specific pattern
-    if ! grep -q 'file_exists("/etc/systemd/system/{$ns}.service")' "$DASHBOARD_INDEX"; then
-        sed -i 's|if (file_exists("/usr/lib/systemd/system/{$ns}.service"))|if (file_exists("/etc/systemd/system/{$ns}.service"))\n                return TRUE;\n            if (file_exists("/usr/lib/systemd/system/{$ns}.service"))|' "$DASHBOARD_INDEX"
-        echo "  - Added _existService() fix for /etc/systemd/system/ detection"
+resolve_source() {
+    CC_STAGE=source
+    if [[ "$LOCAL_INSTALL" == true ]]; then
+        WORK_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
     else
-        echo "  - _existService() fix already present, skipping"
+        local checkout_dir
+        cc_make_temp checkout_dir /usr/src checkout
+        cc_run source-clone git clone "https://github.com/${GITHUB_ACCOUNT}/callcenter-issabel5.git" "$checkout_dir"
+        WORK_DIR="$checkout_dir"
+    fi
+    validate_source_layout
+}
+
+install_modules() {
+    CC_STAGE=modules-copy
+    cc_run modules-ownership chown -R asterisk:asterisk "$WORK_DIR/modules"
+    cc_run modules-copy cp -a "$WORK_DIR/modules/." "$(cc_root_path /var/www/html/modules)/"
+}
+
+patch_dashboard() {
+    local dashboard_dir dashboard_index
+    CC_STAGE=dashboard
+    dashboard_dir="$(cc_root_path /var/www/html/modules/dashboard/applets/ProcessesStatus)"
+    dashboard_index="$dashboard_dir/index.php"
+    if [[ ! -f "$dashboard_index" ]]; then
+        printf 'OPTIONAL stage=dashboard reason=not-installed\n'
+        return 0
     fi
 
-    echo -e "${GREEN}Dashboard patched successfully${NC}"
-else
-    echo -e "${YELLOW}Warning: Dashboard applet not found at $DASHBOARD_INDEX - skipping patch${NC}"
-fi
+    cc_run dashboard-icon cp -f "$WORK_DIR/setup/icon_headphones.png" "$dashboard_dir/images/"
+    if ! grep -q "'Dialer'" "$dashboard_index"; then
+        cc_run dashboard-icon-map sed -i "/'Apache'.*=>.*'icon_www.png'/a\\            'Dialer'    =>  'icon_headphones.png'," "$dashboard_index"
+    fi
+    if ! grep -q "'Dialer'.*=>.*'issabeldialer'" "$dashboard_index"; then
+        cc_run dashboard-service-map sed -i "/'Apache'.*=>.*'httpd'/a\\            'Dialer'    =>  'issabeldialer'," "$dashboard_index"
+    fi
+    if ! grep -q 'dialerd.pid' "$dashboard_index"; then
+        cc_run dashboard-status-map sed -i '/\$arrSERVICES\["Apache"\]\["name_service"\].*=.*"Web Server"/a\        $arrSERVICES["Dialer"]["status_service"] = $this->_existPID_ByFile("/opt/issabel/dialer/dialerd.pid","issabeldialer");' "$dashboard_index"
+        cc_run dashboard-activation-map sed -i '/\$arrSERVICES\["Apache"\]\["name_service"\].*=.*"Web Server"/a\        $arrSERVICES["Dialer"]["activate"] = $this->_isActivate("issabeldialer");' "$dashboard_index"
+        cc_run dashboard-name-map sed -i '/\$arrSERVICES\["Apache"\]\["name_service"\].*=.*"Web Server"/a\        $arrSERVICES["Dialer"]["name_service"] = "Issabel Call Center Service";' "$dashboard_index"
+    fi
+    if ! grep -q 'file_exists("/etc/systemd/system/{$ns}.service")' "$dashboard_index"; then
+        cc_run dashboard-service-check sed -i 's|if (file_exists("/usr/lib/systemd/system/{$ns}.service"))|if (file_exists("/etc/systemd/system/{$ns}.service"))\n                return TRUE;\n            if (file_exists("/usr/lib/systemd/system/{$ns}.service"))|' "$dashboard_index"
+    fi
+}
 
-echo "Installing dialer..."
-# Install dialer
-mkdir -p /opt/issabel/dialer/
-chmod 755 /opt/issabel/dialer/
-/bin/cp -rf setup/dialer_process/dialer/ /opt/issabel/
-chmod +x /opt/issabel/dialer/dialerd
+install_dialer() {
+    local dialer_dir
+    CC_STAGE=dialer-install
+    dialer_dir="$(cc_root_path /opt/issabel/dialer)"
+    cc_run dialer-directory mkdir -p "$dialer_dir"
+    cc_run dialer-directory-permissions chmod 755 "$dialer_dir"
+    cc_run dialer-copy cp -a "$WORK_DIR/setup/dialer_process/dialer/." "$dialer_dir/"
+    cc_run dialer-executable chmod +x "$dialer_dir/dialerd"
+    cc_run service-file cp -f "$WORK_DIR/setup/dialer_process/issabeldialer.service" "$(cc_root_path /etc/systemd/system)/"
+    cc_run service-daemon-reload systemctl daemon-reload
+    cc_run dialer-logrotate-directory mkdir -p "$(cc_root_path /etc/logrotate.d)"
+    cc_run dialer-logrotate cp -f "$WORK_DIR/setup/issabeldialer.logrotate" "$(cc_root_path /etc/logrotate.d/issabeldialer)"
+    cc_run module-log-directory mkdir -p "$(cc_root_path /var/log/callcenter-module)"
+    cc_run module-log-ownership chown asterisk:asterisk "$(cc_root_path /var/log/callcenter-module)"
+    cc_run module-log-permissions chmod 750 "$(cc_root_path /var/log/callcenter-module)"
+    cc_run module-logrotate cp -f "$WORK_DIR/setup/callcenter-modules.logrotate" "$(cc_root_path /etc/logrotate.d/callcenter-modules)"
+    cc_run dnc-script cp -f "$WORK_DIR/setup/usr/bin/issabel-callcenter-local-dnc" "$(cc_root_path /usr/bin/)"
+    cc_run dialer-ownership chown -R asterisk:asterisk "$(cc_root_path /opt/issabel)"
+}
 
-# Install systemd service file
-/bin/cp -f setup/dialer_process/issabeldialer.service /etc/systemd/system/
-systemctl daemon-reload
+install_module_metadata() {
+    local module_dir
+    CC_STAGE=module-metadata
+    module_dir="$(cc_root_path /usr/share/issabel/module_installer/callcenter)"
+    cc_run module-metadata-remove rm -rf -- "$module_dir"
+    cc_run module-metadata-directory mkdir -p "$module_dir"
+    cc_run module-metadata-setup cp -a "$WORK_DIR/setup" "$module_dir/"
+    cc_run module-metadata-menu cp -f "$WORK_DIR/menu.xml" "$module_dir/menu.xml"
+    cc_run module-metadata-changelog cp -f "$WORK_DIR/CHANGELOG" "$module_dir/CHANGELOG"
+    cc_run menu-merge issabel-menumerge "$module_dir/menu.xml"
+    if [[ -f "$(cc_root_path /etc/rocky-release)" ]]; then
+        cc_run sse-config cp -f "$module_dir/setup/issabel-sse.conf" "$(cc_root_path /etc/httpd/conf.d)/"
+        cc_run httpd-reload systemctl reload httpd
+    fi
+}
 
-# Install logrotate config
-mkdir -p /etc/logrotate.d/
-/bin/cp -f setup/issabeldialer.logrotate /etc/logrotate.d/issabeldialer
+run_database_installer() {
+    local module_stage
+    CC_STAGE=database-staging
+    cc_make_temp module_stage /tmp module
+    cc_run database-stage-copy cp -a "$(cc_root_path /usr/share/issabel/module_installer/callcenter)/." "$module_stage/"
+    cc_run database-stage-ownership chown -R asterisk:asterisk "$module_stage"
+    cc_run database-installer php "$module_stage/setup/installer.php"
+}
 
-# Create callcenter module log directory
-mkdir -p /var/log/callcenter-module/
-chown asterisk:asterisk /var/log/callcenter-module/
-chmod 750 /var/log/callcenter-module/
+configure_service() {
+    CC_STAGE=service-configure
+    if id asterisk >/dev/null 2>&1; then
+        cc_run service-user-shell usermod -s /bin/bash asterisk
+    fi
+    cc_run service-enable systemctl enable issabeldialer
+    if systemctl is-active --quiet issabeldialer; then
+        cc_run service-restart systemctl restart issabeldialer
+    else
+        cc_run service-start systemctl start issabeldialer
+    fi
+}
 
-# Install web modules logrotate config
-/bin/cp -f setup/callcenter-modules.logrotate /etc/logrotate.d/callcenter-modules
+reload_asterisk() {
+    CC_STAGE=asterisk-reload
+    cc_run asterisk-reload asterisk -rx 'core reload'
+}
 
-# Install DNC script
-/bin/cp -f setup/usr/bin/issabel-callcenter-local-dnc /usr/bin/
+post_install_healthcheck() {
+    CC_STAGE=post-install-healthcheck
+    cc_run dialer-active systemctl is-active --quiet issabeldialer
+    cc_run asterisk-health asterisk -rx 'core show version'
+    test -x "$(cc_root_path /opt/issabel/dialer/dialerd)" || cc_die 'dialerd is not executable'
+}
 
-# Set ownership
-chown asterisk.asterisk /opt/issabel -R
+main() {
+    parse_args "$@" || return $?
+    preflight
+    resolve_source
+    install_modules
+    patch_dashboard
+    install_dialer
+    install_module_metadata
+    run_database_installer
+    configure_service
+    reload_asterisk
+    post_install_healthcheck
+    printf 'Issabel CallCenter %s installation complete!\n' "$RELEASE"
+}
 
-echo "Installing module installer files..."
-# Install module installer files
-rm -rf /usr/share/issabel/module_installer/callcenter/
-mkdir -p /usr/share/issabel/module_installer/callcenter/
-/bin/cp -rf setup/ /usr/share/issabel/module_installer/callcenter/
-/bin/cp -f menu.xml /usr/share/issabel/module_installer/callcenter/
-/bin/cp -f CHANGELOG /usr/share/issabel/module_installer/callcenter/
-
-# Merge menu
-echo "Merging menu..."
-issabel-menumerge /usr/share/issabel/module_installer/callcenter/menu.xml
-
-# Install SSE Apache config only on Rocky/PHP-FPM systems
-if [ -f /etc/rocky-release ]; then
-    /bin/cp -f /usr/share/issabel/module_installer/callcenter/setup/issabel-sse.conf /etc/httpd/conf.d/
-    systemctl reload httpd 2>/dev/null || true
-fi
-
-# Run database installer
-echo "Running database installer..."
-mkdir -p /tmp/new_module/callcenter
-/bin/cp -rf /usr/share/issabel/module_installer/callcenter/* /tmp/new_module/callcenter/
-chown -R asterisk.asterisk /tmp/new_module/callcenter
-
-php /tmp/new_module/callcenter/setup/installer.php
-rm -rf /tmp/new_module
-
-# Set shell for user asterisk (required for dialer to work)
-echo "Configuring asterisk user shell..."
-if ! rpm -q util-linux-user &>/dev/null; then
-    dnf install -y util-linux-user 2>/dev/null || yum install -y util-linux-user 2>/dev/null || true
-fi
-
-# Use usermod instead of chsh to avoid interactive prompts
-if id asterisk &>/dev/null; then
-    usermod -s /bin/bash asterisk 2>/dev/null || chsh -s /bin/bash asterisk </dev/null 2>/dev/null || true
-fi
-
-# Enable and start the systemd service
-echo "Enabling issabeldialer service..."
-systemctl enable issabeldialer
-
-# Restart dialer if already running, otherwise start it
-if systemctl is-active --quiet issabeldialer; then
-    echo -e "${GREEN}Restarting issabeldialer service...${NC}"
-    systemctl restart issabeldialer
-else
-    echo -e "${GREEN}Starting issabeldialer service...${NC}"
-    systemctl start issabeldialer
-fi
-
-# Reload Asterisk
-asterisk -rx'core reload' 2>/dev/null || true
-
-# Clean up cloned repository if installed from GitHub
-if [ "$LOCAL_INSTALL" = false ]; then
-    rm -rf /usr/src/callcenter
-fi
-
-echo
-echo -e "${GREEN}============================================${NC}"
-echo -e "${GREEN}Issabel CallCenter ${RELEASE} installation complete!${NC}"
-echo -e "${GREEN}============================================${NC}"
-echo
+main "$@"
