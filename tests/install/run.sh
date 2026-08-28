@@ -4,6 +4,7 @@ set -Eeuo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 test_files=("$script_dir"/test_*.sh)
 for test_file in "${test_files[@]}"; do
+    [[ "$(basename "$test_file")" == "test_helpers.sh" ]] && continue
     bash "$test_file"
 done
 
