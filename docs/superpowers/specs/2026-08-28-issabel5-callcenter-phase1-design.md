@@ -20,6 +20,7 @@ The compatibility target is the user's Issabel 5 installation derived from `issa
 | Asterisk | User-supplied Issabel CLI evidence reports Asterisk 18.19.0 | Re-run `core show version` on clone `10.39.188.63` before compatibility is marked verified there |
 | Database | Not yet measured on the clone | Record MariaDB server/client versions, schema presence, and migration state without retaining credentials |
 | Existing module | The user reports that Call Center is already installed on the source test server that was cloned | Treat VM 127 as an upgrade/repeat-install target; inspect the installed package and schema before mutation |
+| Removal authorization | The user explicitly authorizes `bash build/5.0/remove-issabel-callcenter.sh` on the disposable clone | Characterize and inventory its targets before execution; answer its database-deletion prompt only after the choice is recorded in test evidence |
 | Staging safety | Proxmox VM 127, `ISSABEL5CALLCENTERTEST`, with snapshot `baseline-before-callcenter-work`; user reports trunks plus inbound and outbound routes removed, with no GSM connection or VPN | Use synthetic records only and do not originate external calls |
 
 Public documentation, repository metadata, screenshots, unauthenticated probes, and authenticated staging commands must remain separately labeled. A version is “staging verified” only when its command and output are retained in `docs/test-evidence.md`; screenshots containing private infrastructure details remain outside the public repository.
@@ -134,8 +135,10 @@ Validation proceeds in this order:
 4. Run the local installer as an upgrade/repeat installation over the existing staging module and retain the exact exit status and logs.
 5. Verify installed files, ownership, permissions, menu integration, database objects, `issabeldialer`, Apache/PHP loading, and Asterisk connectivity.
 6. Run the same installer a second time to prove repeat-install safety.
-7. Exercise only synthetic UI and service-health checks; do not create an external trunk or originate an external call.
-8. Restore the Proxmox snapshot if validation produces an unrecoverable partial state, then record the failure rather than converting it into success.
+7. Characterize `build/5.0/remove-issabel-callcenter.sh`, record its exact filesystem, service, dialplan, menu, and database targets, and fix false-success or unsafe-cleanup behavior required for the authorized test.
+8. Run a snapshot-backed removal, record the answer supplied to the database-deletion prompt, verify the intended removed and retained state, reinstall, and repeat the post-install checks.
+9. Exercise only synthetic UI and service-health checks; do not create an external trunk or originate an external call.
+10. Restore the Proxmox snapshot if validation produces an unrecoverable partial state, then record the failure rather than converting it into success.
 
 ## Error and Recovery Model
 
@@ -151,7 +154,8 @@ Testing is layered and evidence labels remain explicit:
 2. **Characterization/unit simulation:** deterministic success and failure-path tests for installer control flow, temporary-directory safety, exit codes, and completion messaging.
 3. **Repository regression:** existing project checks plus targeted searches proving malformed invocation and unsafe temporary cleanup patterns are absent from the changed installer.
 4. **Disposable Issabel integration:** upgrade/repeat installation on VM 127, database and file verification, service health, Apache/PHP module loading, and Asterisk CLI connectivity.
-5. **Rollback rehearsal:** verify the snapshot is still available and record restore steps; restore it only when required by a failed integration run or when the user requests rehearsal.
+5. **Removal/reinstallation integration:** inventory-backed removal using the user-authorized script, verification of removed and retained state, reinstallation, and the same post-install checks. Database deletion is recorded separately from file/module removal.
+6. **Rollback rehearsal:** verify the snapshot is still available and record restore steps; restore it only when required by a failed integration run or when the user requests rehearsal.
 
 No simulated test is evidence of real Issabel, MariaDB, systemd, or Asterisk integration. No health check is evidence that outbound or inbound calling works.
 
@@ -169,6 +173,8 @@ Phase 1 is complete when all of the following have retained evidence:
 - the PHP database installer cannot fail a required operation while the shell installer reports success;
 - syntax, static, simulated, and relevant regression checks pass;
 - an upgrade/repeat installation and an immediate second repeat installation pass on the snapshotted clone;
+- the authorized removal script reports required failures, removes only its recorded targets, and does not claim success after a required failure;
+- snapshot-backed removal and reinstallation pass, with the database-deletion choice and resulting schema state retained as evidence;
 - database objects, installed files, menu integration, web module loading, `issabeldialer`, and Asterisk CLI connectivity pass post-install checks;
 - limitations and every unverified runtime claim are recorded;
 - the verified changes are committed as small logical commits on `develop` and are ready for review on the user's fork.
