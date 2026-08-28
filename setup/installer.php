@@ -24,7 +24,9 @@ require_once(__DIR__.'/installer_lib.php');
 
 function runCallCenterInstaller()
 {
-    $DocumentRoot = "/var/www/html";
+    $DocumentRoot = defined('CALLCENTER_DOCUMENT_ROOT')
+        ? CALLCENTER_DOCUMENT_ROOT
+        : "/var/www/html";
     $tmpDir = realpath(dirname(__DIR__));
     if ($tmpDir === false) {
         throw new CallCenterInstallException('source root is unavailable');
@@ -477,10 +479,11 @@ function instalarAgentDefaultsTemplate()
  * Reads agent passwords from the call_center database to populate the
  * chan_agent format, since app_agent_pool entries do not store passwords.
  */
-function convertirAgentsConf($astMajor)
+function convertirAgentsConf($astMajor, $sArchivo = '/etc/asterisk/agents.conf')
 {
-    $sArchivo = '/etc/asterisk/agents.conf';
-    if (!file_exists($sArchivo)) return;
+    if (!file_exists($sArchivo)) {
+        throw new CallCenterInstallException('configuration file is missing: '.$sArchivo);
+    }
 
     $contenido = @file($sArchivo);
     if ($contenido === false) {
@@ -631,11 +634,13 @@ SQL_CHARSET;
     fputs(STDERR, "INFO: utf8mb4 charset conversion complete (".count($result)." tables converted) | Es: Conversión de charset utf8mb4 completada (".count($result)." tablas convertidas)\n");
 }
 
-try {
-    runCallCenterInstaller();
-    exit(0);
-} catch (Exception $e) {
-    fputs(STDERR, "ERROR: Call Center installer failed: ".$e->getMessage()."\n");
-    exit(1);
+if (!defined('CALLCENTER_INSTALLER_NO_ENTRY') || !CALLCENTER_INSTALLER_NO_ENTRY) {
+    try {
+        runCallCenterInstaller();
+        exit(0);
+    } catch (Exception $e) {
+        fputs(STDERR, "ERROR: Call Center installer failed: ".$e->getMessage()."\n");
+        exit(1);
+    }
 }
 ?>

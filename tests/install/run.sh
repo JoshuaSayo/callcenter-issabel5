@@ -12,3 +12,4 @@ command -v php >/dev/null || {
     exit 1
 }
 php "$script_dir/test_installer_lib.php"
+php "$script_dir/test_installer_entry.php"

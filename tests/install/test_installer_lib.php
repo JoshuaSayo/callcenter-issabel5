@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__.'/../../setup/installer_lib.php';
+define('CALLCENTER_INSTALLER_NO_ENTRY', true);
+require_once __DIR__.'/../../setup/installer.php';
 
 class FakeFailingDB {
     public $errMsg = 'forced database failure';
@@ -11,9 +12,13 @@ class FakeFailingDB {
 function expectInstallFailure($callable, $fragment) {
     try { $callable(); }
     catch (CallCenterInstallException $e) {
-        if (strpos($e->getMessage(), $fragment) === false) exit(2);
+        if (strpos($e->getMessage(), $fragment) === false) {
+            fwrite(STDERR, "FAIL installer_lib: missing error fragment: ".$fragment."\n");
+            exit(2);
+        }
         return;
     }
+    fwrite(STDERR, "FAIL installer_lib: expected install failure: ".$fragment."\n");
     exit(3);
 }
 
@@ -26,5 +31,7 @@ expectInstallFailure(function () { cc_write_file(__DIR__.'/missing/path/file.con
 expectInstallFailure(function () { cc_parse_asterisk_major(false); }, 'unavailable');
 expectInstallFailure(function () { cc_parse_asterisk_major(''); }, 'unavailable');
 expectInstallFailure(function () { cc_parse_asterisk_major('not a version'); }, 'cannot parse');
+$missingAgents = sys_get_temp_dir().DIRECTORY_SEPARATOR.'cc-missing-agents-'.getmypid().DIRECTORY_SEPARATOR.'agents.conf';
+expectInstallFailure(function () use ($missingAgents) { convertirAgentsConf(11, $missingAgents); }, 'configuration file is missing');
 if (cc_parse_asterisk_major('Asterisk 18.19.0 built by root') !== 18) exit(4);
 echo "PASS installer_lib\n";
