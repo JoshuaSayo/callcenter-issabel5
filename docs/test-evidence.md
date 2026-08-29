@@ -111,7 +111,7 @@ Each entry records environment, command or observation, result, and limitation. 
 
 ## Removal/Reinstallation
 
-No removal command has been run. The user's authorization applies only to disposable VM 127, and the snapshot must be rechecked before database deletion.
+No removal command has been run. The final Task 9 destructive scenario is clean-database removal/reinstallation on disposable VM 127; it is unverified and not yet executed. The snapshot must be rechecked before database deletion.
 
 ## Retained local-only evidence
 
