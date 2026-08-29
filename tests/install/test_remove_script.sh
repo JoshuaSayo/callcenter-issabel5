@@ -34,8 +34,15 @@ case "${1:-}" in
         exit 3
         ;;
     is-enabled)
+        if [[ "${SYSTEMCTL_REQUIRE_C_LOCALE:-0}" == 1 && "${LC_ALL:-}" != C ]]; then
+            exit 43
+        fi
         if [[ -n "${SYSTEMCTL_ENABLED_STATE:-}" ]]; then
-            printf "%s\n" "$SYSTEMCTL_ENABLED_STATE"
+            if [[ "${SYSTEMCTL_ENABLED_STREAM:-stdout}" == stderr ]]; then
+                printf "%s\n" "$SYSTEMCTL_ENABLED_STATE" >&2
+            else
+                printf "%s\n" "$SYSTEMCTL_ENABLED_STATE"
+            fi
             exit "${SYSTEMCTL_ENABLED_STATUS:-0}"
         fi
         if [[ -e "$state_dir/service-enabled" ]]; then
@@ -496,7 +503,7 @@ test_systemd_query_errors_are_fatal() {
     assert_not_contains "$output" 'Call Center Module removed successfully'
 }
 
-test_systemd_expected_states_are_accepted() {
+test_systemd_v239_static_state_is_present() {
     local output status
 
     prepare_fixture systemd-static-state
@@ -509,17 +516,38 @@ test_systemd_expected_states_are_accepted() {
     assert_status 0 "$status"
     assert_contains "$output" 'Call Center Module removed successfully'
     [[ ! -e "$state_dir/service-enabled" ]] || fail 'static unit state skipped service disable'
+}
 
-    prepare_fixture systemd-not-found-state
+test_systemd_v239_linked_state_is_present() {
+    local output status
+
+    prepare_fixture systemd-v239-linked
     rm -f -- \
         "$fixture_root/etc/systemd/system/issabeldialer.service" \
         "$fixture_root/etc/rc.d/init.d/issabeldialer" \
-        "$state_dir/service-active" \
-        "$state_dir/service-enabled"
-    SYSTEMCTL_ENABLED_STATE=not-found SYSTEMCTL_ENABLED_STATUS=4 \
+        "$state_dir/service-active"
+    SYSTEMCTL_ENABLED_STATE=linked SYSTEMCTL_ENABLED_STATUS=1 \
         capture_remove output status --keep-database
     assert_status 0 "$status"
     assert_contains "$output" 'Call Center Module removed successfully'
+    [[ ! -e "$state_dir/service-enabled" ]] || fail 'v239 linked unit skipped service disable'
+    [[ -e "$fixture_root/var/lib/fake-mysql/call_center" ]] || fail 'v239 linked state deleted kept database'
+}
+
+test_systemd_v239_missing_unit_keeps_second_removal_idempotent() {
+    local output status
+
+    prepare_fixture systemd-v239-missing
+    capture_remove output status --keep-database
+    assert_status 0 "$status"
+
+    SYSTEMCTL_ENABLED_STATE='Failed to get unit file state for issabeldialer.service: No such file or directory' \
+    SYSTEMCTL_ENABLED_STATUS=1 SYSTEMCTL_ENABLED_STREAM=stderr SYSTEMCTL_REQUIRE_C_LOCALE=1 \
+        capture_remove output status --keep-database
+    assert_status 0 "$status"
+    assert_contains "$output" 'Call Center Module removed successfully'
+    [[ -e "$fixture_root/var/lib/fake-mysql/call_center" ]] || fail 'v239 missing-unit second removal deleted kept database'
+    assert_containment_sentinels_survive
 }
 
 test_dialplan_query_error_is_fatal_without_editing() {
@@ -549,7 +577,9 @@ tests=(
     test_symlink_escape_targets_are_rejected
     test_malformed_dialplan_markers_fail_without_editing
     test_systemd_query_errors_are_fatal
-    test_systemd_expected_states_are_accepted
+    test_systemd_v239_static_state_is_present
+    test_systemd_v239_linked_state_is_present
+    test_systemd_v239_missing_unit_keeps_second_removal_idempotent
     test_dialplan_query_error_is_fatal_without_editing
 )
 if [[ "$#" -gt 0 ]]; then

@@ -127,14 +127,16 @@ systemctl_is_active() {
 
 systemctl_is_enabled() {
     local state status
-    if state="$(systemctl is-enabled issabeldialer 2>&1)"; then
+    if state="$(LC_ALL=C systemctl is-enabled issabeldialer 2>&1)"; then
         status=0
     else
         status=$?
     fi
     case "$status:$state" in
-        0:enabled|0:enabled-runtime|0:linked|0:linked-runtime|0:alias|0:static|0:indirect|0:generated) return 0 ;;
-        1:disabled|1:disabled-runtime|1:static|1:indirect|1:generated|1:transient|1:masked|1:masked-runtime|1:not-found|3:not-found|4:not-found) return 1 ;;
+        0:enabled|0:enabled-runtime|0:static|0:indirect|0:generated) return 0 ;;
+        1:linked|1:linked-runtime) return 0 ;;
+        1:disabled|1:transient|1:masked|1:masked-runtime) return 1 ;;
+        '1:Failed to get unit file state for issabeldialer.service: No such file or directory') return 1 ;;
         *) cc_die "systemctl is-enabled query failed with status $status" ;;
     esac
 }
