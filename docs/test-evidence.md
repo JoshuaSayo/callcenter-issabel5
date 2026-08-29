@@ -98,6 +98,12 @@ Each entry records environment, command or observation, result, and limitation. 
 - Start: `2026-08-29T22:01:02.0117546+08:00`; end: `2026-08-29T22:01:02.2801565+08:00`; exit: `1`; decisive output: `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`.
 - Label: local container-engine availability evidence.
 - Local PHP 7.4 container check unavailable; Task 8 staging PHP 7.4 checks are required before mutation.
+- Final scenario-label commit check: `git diff --check upstream/master...HEAD`.
+- Start: `2026-08-29T22:20:34.5085530+08:00`; end: `2026-08-29T22:20:34.5629078+08:00`; exit: `0`; decisive output: no whitespace diagnostics.
+- Label: final committed-document static evidence, covering the clean-database removal/reinstallation scenario label.
+- Final scenario-label worktree check: `git status --short`.
+- Start: `2026-08-29T22:20:34.5642830+08:00`; end: `2026-08-29T22:20:34.6126785+08:00`; exit: `0`; decisive output: empty.
+- Label: final committed-document static evidence, before the evidence-only update below.
 
 ## Staging
 
