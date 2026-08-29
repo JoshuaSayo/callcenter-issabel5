@@ -77,6 +77,28 @@ Each entry records environment, command or observation, result, and limitation. 
 - Label: local PHP 7.4.33 unit/syntax and simulated command-stub evidence only.
 - Limitation: this does not replace Rocky Linux staging checks required in Task 8.
 
+### E-P1-008 — pre-staging lifecycle regression checkpoint
+
+- Date: 2026-08-29 Asia/Manila.
+- Aggregate command: `$phpDir=(Resolve-Path -LiteralPath '.superpowers\\sdd\\2026-08-28-issabel5-callcenter-phase1\\runtime\\php-7.4.33').Path; $env:PATH="$phpDir;$env:PATH"; & 'C:\\Program Files\\Git\\bin\\bash.exe' tests/install/run.sh`.
+- Result: controller-recorded direct execution exited `0` with `PASS test_baseline_collector`, `PASS: installer behavior tests`, `PASS test_lifecycle_common`, `PASS test_remove_script`, `PASS installer_lib`, and `PASS installer_entry`.
+- Runtime: portable Windows PHP `7.4.33` on `PATH`; Git Bash `C:\\Program Files\\Git\\bin\\bash.exe`.
+- Start: `2026-08-29T22:10:29.3893252+08:00`; end: `2026-08-29T22:13:26.6266954+08:00`; exit: `0`.
+- Label: portable Windows PHP 7.4 unit/syntax and simulated command-stub evidence only; not Rocky staging evidence.
+- Syntax command: `bash -n tools/collect-issabel-baseline.sh build/5.0/lib/callcenter-lifecycle.sh build/5.0/install-issabel-callcenter.sh build/5.0/remove-issabel-callcenter.sh tests/install/*.sh`.
+- Start: `2026-08-29T22:00:29.3651442+08:00`; end: `2026-08-29T22:00:29.4500541+08:00`; exit: `0`; decisive output: no syntax diagnostics.
+- Label: portable Windows Git Bash syntax evidence only.
+- Diff command: `git diff --check upstream/master...HEAD`.
+- Start: `2026-08-29T22:00:44.2262495+08:00`; end: `2026-08-29T22:00:44.3391201+08:00`; exit: `0`; decisive output: no whitespace diagnostics.
+- Label: local Git static evidence.
+- Status command: `git status --short`.
+- Start: `2026-08-29T22:00:53.5348498+08:00`; end: `2026-08-29T22:00:53.6173624+08:00`; exit: `0`; decisive output: empty (clean worktree before documentation edits).
+- Label: local Git static evidence.
+- Docker command: `docker version`.
+- Start: `2026-08-29T22:01:02.0117546+08:00`; end: `2026-08-29T22:01:02.2801565+08:00`; exit: `1`; decisive output: `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`.
+- Label: local container-engine availability evidence.
+- Local PHP 7.4 container check unavailable; Task 8 staging PHP 7.4 checks are required before mutation.
+
 ## Staging
 
 ### E-P1-003 — unauthenticated reachability
@@ -99,4 +121,5 @@ Infrastructure screenshots remain outside the public repository under `environme
 
 - Exact installed Issabel build, MariaDB version, systemd version, CLI PHP modules, and clone Asterisk version remain unverified.
 - No clean install, upgrade, removal, schema migration, authenticated UI, dialer, agent, queue, inbound, outbound, or report workflow has passed yet.
+- Local PHP evidence remains simulated/unit/syntax evidence; Task 8 must perform staging checks before mutation.
 - No external call will be used as Phase 1 evidence.

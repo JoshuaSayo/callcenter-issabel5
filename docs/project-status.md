@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 1 — compatibility, architecture, and lifecycle safety baseline.
+Phase 1 — pre-staging lifecycle evidence checkpoint complete.
 
 ## Completed
 
@@ -17,22 +17,18 @@ Phase 1 — compatibility, architecture, and lifecycle safety baseline.
 - Task 3 lifecycle shell primitives completed in commit `2b8c094`.
 - Task 4 installer hardening completed and review-clean through commits `ad46168` and `f8aa556`.
 - Task 5 PHP failure propagation completed and review-clean through commits `0d47dac` and `afc1ad8`.
-- Task 6 removal hardening implementation committed as `431d8e3`; its independent review is pending.
-
-## Paused
-
-- Paused at the user's request after Task 6 implementation and before its independent review completed. The in-flight reviewer was stopped cleanly.
+- Task 6 removal hardening is review-clean through `8630c2c`.
+- Task 7 pre-staging evidence checkpoint recorded: aggregate simulated lifecycle tests, Bash syntax, and Git checks pass locally; Docker engine is unavailable.
 
 ## Blockers
 
 - Key-based SSH access is required before authenticated staging evidence in Task 8.
 - Local WSL has no installed distribution; Git Bash 5.3 is the verified local shell-test runtime.
-- Docker Desktop is unavailable because its inference manager rejects the Windows user path; official portable PHP 7.4.33 is the verified local PHP unit-test runtime.
-- Work is intentionally paused to preserve the user's current token window.
+- Docker Desktop is unavailable because its inference manager rejects the Windows user path; portable Windows PHP 7.4.33 provides local unit/syntax evidence only.
 
 ## Exact next action
 
-When the user says to continue, dispatch a fresh read-only Task 6 reviewer against `.superpowers/sdd/2026-08-28-issabel5-callcenter-phase1/review-afc1ad8..431d8e3.diff`; if clean, close Task 6 and begin Task 7.
+Establish key-based SSH access and run the read-only baseline collector on VM 127.
 
 ## Branch and remotes
 
