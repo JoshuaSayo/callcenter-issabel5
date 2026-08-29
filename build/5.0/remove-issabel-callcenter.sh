@@ -64,11 +64,20 @@ path_exists() {
     [[ -e "$1" || -L "$1" ]]
 }
 
+require_canonical_parent() {
+    local path="$1" parent resolved_parent
+    parent="$(dirname -- "$path")"
+    resolved_parent="$(cc_resolve_path "$parent")"
+    [[ "$resolved_parent" == "$parent" ]] ||
+        cc_die "removal parent is not canonical: $parent resolves to $resolved_parent"
+}
+
 remove_tree() {
     local path="$1" accepted_root rooted_root safe=0
 
     [[ "$path" == /* && "$path" != *'/../'* && "$path" != */.. && "$path" != *'/./'* ]] ||
         cc_die "unsafe removal tree: $path"
+    require_canonical_parent "$path"
     for accepted_root in "${REMOVAL_TREE_ROOTS[@]}"; do
         rooted_root="$(cc_root_path "$accepted_root")"
         if [[ "$path" == "$rooted_root/"* ]]; then
@@ -87,6 +96,7 @@ remove_tree() {
 remove_file() {
     local path="$1" allowed safe=0
 
+    require_canonical_parent "$path"
     for allowed in "${REMOVAL_FILES[@]}"; do
         if [[ "$path" == "$allowed" ]]; then
             safe=1
@@ -101,9 +111,62 @@ remove_file() {
     ! path_exists "$path" || cc_die "removal file remains present: $path"
 }
 
+systemctl_is_active() {
+    local state status
+    if state="$(systemctl is-active issabeldialer 2>&1)"; then
+        status=0
+    else
+        status=$?
+    fi
+    case "$status:$state" in
+        0:active|0:reloading|0:activating) return 0 ;;
+        3:inactive|3:failed|3:deactivating|4:unknown) return 1 ;;
+        *) cc_die "systemctl is-active query failed with status $status" ;;
+    esac
+}
+
+systemctl_is_enabled() {
+    local state status
+    if state="$(systemctl is-enabled issabeldialer 2>&1)"; then
+        status=0
+    else
+        status=$?
+    fi
+    case "$status:$state" in
+        0:enabled|0:enabled-runtime|0:linked|0:linked-runtime|0:alias|0:static|0:indirect|0:generated) return 0 ;;
+        1:disabled|1:disabled-runtime|1:static|1:indirect|1:generated|1:transient|1:masked|1:masked-runtime|1:not-found|3:not-found|4:not-found) return 1 ;;
+        *) cc_die "systemctl is-enabled query failed with status $status" ;;
+    esac
+}
+
+dialplan_pattern_present() {
+    local pattern="$1" status
+    if grep -q -- "$pattern" "$EXTENSIONS_FILE"; then
+        return 0
+    else
+        status=$?
+    fi
+    [[ "$status" -eq 1 ]] && return 1
+    cc_die "dialplan query failed with status $status"
+}
+
+dialplan_pattern_lines() {
+    local output_variable="$1" pattern="$2" query_output query_status
+    if query_output="$(grep -n -- "$pattern" "$EXTENSIONS_FILE")"; then
+        query_status=0
+    else
+        query_status=$?
+    fi
+    case "$query_status" in
+        0) printf -v "$output_variable" '%s' "$query_output"; return 0 ;;
+        1) printf -v "$output_variable" '%s' ''; return 1 ;;
+        *) cc_die "dialplan query failed with status $query_status" ;;
+    esac
+}
+
 service_present=0
 if path_exists "$SYSTEMD_UNIT" || path_exists "$INIT_SCRIPT" ||
-    systemctl is-active --quiet issabeldialer || systemctl is-enabled --quiet issabeldialer
+    systemctl_is_active || systemctl_is_enabled
 then
     service_present=1
 fi
@@ -140,14 +203,35 @@ remove_file "$DASHBOARD_ICON"
 cc_run menu-removal issabel-menuremove call_center
 
 context_removed=0
-if [[ -f "$EXTENSIONS_FILE" ]] &&
-    grep -q '^; BEGIN ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$' "$EXTENSIONS_FILE"
-then
-    cc_run dialplan-context-removal sed -i \
-        '/^; BEGIN ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$/,/^; END ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$/d' \
-        "$EXTENSIONS_FILE"
-    context_removed=1
+if [[ -f "$EXTENSIONS_FILE" ]]; then
+    context_begin_present=0
+    context_end_present=0
+    context_begin_lines=''
+    context_end_lines=''
+    if dialplan_pattern_lines context_begin_lines '^; BEGIN ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$'; then
+        context_begin_present=1
+    fi
+    if dialplan_pattern_lines context_end_lines '^; END ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$'; then
+        context_end_present=1
+    fi
+    if [[ "$context_begin_present" -ne "$context_end_present" ]]; then
+        cc_die 'dialplan marker validation failed: unmatched Call Center context marker'
+    fi
+    if [[ "$context_begin_present" -eq 1 ]]; then
+        [[ "$context_begin_lines" != *$'\n'* && "$context_end_lines" != *$'\n'* ]] ||
+            cc_die 'dialplan marker validation failed: duplicate Call Center context marker'
+        context_begin_line="${context_begin_lines%%:*}"
+        context_end_line="${context_end_lines%%:*}"
+        [[ "$context_begin_line" =~ ^[0-9]+$ && "$context_end_line" =~ ^[0-9]+$ &&
+            "$context_begin_line" -lt "$context_end_line" ]] ||
+            cc_die 'dialplan marker validation failed: Call Center context markers are out of order'
+        cc_run dialplan-context-removal sed -i \
+            '/^; BEGIN ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$/,/^; END ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$/d' \
+            "$EXTENSIONS_FILE"
+        context_removed=1
+    fi
 fi
+unset context_begin_lines context_end_lines context_begin_line context_end_line
 if [[ "$context_removed" -eq 1 ]]; then
     cc_run dialplan-reload asterisk -rx 'dialplan reload'
 fi
@@ -207,7 +291,7 @@ case "$DATABASE_ACTION" in
 esac
 unset database_state
 
-if systemctl is-active --quiet issabeldialer; then
+if systemctl_is_active; then
     cc_die 'service postcondition failed: issabeldialer is active'
 fi
 
@@ -231,10 +315,12 @@ for removed_file in "${REMOVAL_FILES[@]}"; do
 done
 unset removed_file
 
-if [[ -f "$EXTENSIONS_FILE" ]] &&
-    grep -q '^; \(BEGIN\|END\) ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$' "$EXTENSIONS_FILE"
-then
-    cc_die 'dialplan postcondition failed: Call Center context marker remains present'
+if [[ -f "$EXTENSIONS_FILE" ]]; then
+    if dialplan_pattern_present '^; BEGIN ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$' ||
+        dialplan_pattern_present '^; END ISSABEL CALL-CENTER CONTEXTS DO NOT REMOVE THIS LINE$'
+    then
+        cc_die 'dialplan postcondition failed: Call Center context marker remains present'
+    fi
 fi
 
 printf '%s\n' 'Call Center Module removed successfully'
