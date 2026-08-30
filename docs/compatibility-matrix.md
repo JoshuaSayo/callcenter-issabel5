@@ -9,14 +9,14 @@
 | Component | Documented | Observed externally | Verified on clone | Current claim |
 | --- | --- | --- | --- | --- |
 | Issabel media | `issabel5-USB-DVD-x86_64-20240430.iso` in official Issabel 5 SourceForge listing | User identifies this as the deployed media | Unverified | Exact media target known; installed build unknown |
-| Issabel module | Repository `RELEASE='5.0.0-1'`; README describes Call Center 5.0.0-1 | User reports Call Center already installed on source test server | Installer release string `5.0.0-1` appeared once in each successful `751a62f` installer log | Upgrade/repeat installer release verified on clone; package/module-registry version not independently queried |
+| Issabel module | Repository `RELEASE='5.0.0-1'`; README describes Call Center 5.0.0-1 | User reports Call Center already installed on source test server | Installer release string `5.0.0-1` completed upgrade/repeat at `751a62f`; clean installation from source commit `29adf38` also succeeded | Upgrade/repeat release string and fixed clean source installation verified on clone; package/module-registry version not independently queried |
 | Operating system | Issabel 5 release documentation names Rocky Linux 8.8 | Console screenshot shows Rocky Linux 8.8 | Rocky Linux 8.8 (Green Obsidian) | Verified on clone |
 | Kernel | No exact media claim retained | Console screenshot shows `4.18.0-477.27.1.el8_8.x86_64` | `4.18.0-477.27.1.el8_8.x86_64` | Verified on clone |
 | PHP | README claims 5.4 through 8.0 compatibility | HTTPS header reports PHP 7.4.33 | PHP 7.4.33 CLI; both installer PHP files pass syntax | Verified on clone |
 | Apache | Rocky/Issabel web stack expected | HTTPS header reports Apache 2.4.37 | Apache 2.4.37; local HTTPS `200` after each install | Verified on clone |
 | OpenSSL | Rocky/Issabel web stack expected | HTTPS header reports OpenSSL 1.1.1k | Unverified | Observed, not authenticated |
-| Asterisk | README states Asterisk 18 testing | Issabel CLI screenshot reports Asterisk 18.19.0 | Asterisk 18.19.0; `llamada_agendada` present after each install | Verified on clone |
-| MariaDB/MySQL | `issabeldialer.service` requires `mariadb.service`; installer uses MySQL APIs | No version evidence | MariaDB 10.3.39; `call_center` has 24 tables after each install | Verified on clone |
+| Asterisk | README states Asterisk 18 testing | Issabel CLI screenshot reports Asterisk 18.19.0 | Asterisk 18.19.0; `llamada_agendada` present after upgrade/repeat and fixed clean install | Verified on clone |
+| MariaDB/MySQL | `issabeldialer.service` requires `mariadb.service`; installer uses MySQL APIs | No version evidence | MariaDB 10.3.39; fixed clean install has 24 tables plus four verified URL2/URL3 fields/FKs; semantic schema equals the protected pre-delete schema | Verified on clone |
 | systemd | Service unit is shipped in `setup/dialer_process/issabeldialer.service` | No version evidence | systemd 239; `issabeldialer` enabled and active after each install | Verified on clone |
 | FreePBX-derived components | Runtime reads Issabel/Asterisk configuration and `asterisk` database | No component-version evidence | Unverified | Exact component versions unknown |
 | Baseline collector | Repository contract defined in `tools/collect-issabel-baseline.sh` | Command-stub RED/GREEN tests pass under Git Bash 5.3 | Authenticated output saved mode `600`, secret-safe, SHA-256 recorded in E-P1-009 | Verified on clone |

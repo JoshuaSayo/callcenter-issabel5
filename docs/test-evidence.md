@@ -9,7 +9,7 @@ Each entry records environment, command or observation, result, and limitation. 
 - Media target: `issabel5-USB-DVD-x86_64-20240430.iso`; official SourceForge Issabel 5 listing was checked on 2026-08-28.
 - Disposable target: Proxmox VM 127, `ISSABEL5CALLCENTERTEST`, `10.39.188.63`.
 - Rollback: snapshot `baseline-before-callcenter-work`, RAM captured.
-- User-reported isolation: trunks, inbound routes, and outbound routes removed; no GSM connection or VPN.
+- Isolation: no GSM connection or PBX VPN; the remaining synthetic inbound/outbound test routes were backed up and removed through Issabel functions before lifecycle testing, then all five route tables were verified empty.
 - Local branch: `develop` in `.worktrees/issabel5-phase1`.
 
 ## Static
@@ -130,7 +130,29 @@ Each entry records environment, command or observation, result, and limitation. 
 
 ## Removal/Reinstallation
 
-No removal command has been run. The final Task 9 destructive scenario is clean-database removal/reinstallation on disposable VM 127; it is unverified and not yet executed. The snapshot must be rechecked before database deletion.
+### E-P1-010 — authenticated staging removal and clean reinstallation
+
+- Date: 2026-08-30 Asia/Manila. Target: snapshot-backed disposable VM 127. Final source: clean public `develop` clone at `29adf38ed454d5d6fff7170115c1cb6071902fbb` in `/usr/src/callcenter-issabel5-develop-29adf38`.
+- Isolation: exact machine/DMI identities matched; zero active calls/channels and zero active campaigns; the synthetic inbound `888 / Test` route and outbound `outside` route were backed up, removed through Issabel-supported functions, and reloaded successfully. All five route tables remained empty. Protected recovery directory: `/root/callcenter-phase1/task9-20260830T090704Z`.
+- Keep-database lifecycle: `--keep-database` removal exited `0`; Call Center files/service/context were absent while all 24 `call_center` tables and the logical database hash remained unchanged. Reinstall exited `0`, restored the service/files/context, and preserved the same database and unrelated dialplan state.
+- Defect reproduced: the first clean reinstallation from `fa993c9` returned installer status `0` but omitted `campaign.id_url2`, `campaign.id_url3`, `campaign_entry.id_url2`, and `campaign_entry.id_url3`. Direct runtime projections failed with MariaDB error `1054`. Runtime code queries these fields, while campaign pages previously attempted a lazy schema repair.
+- Fix: commit `29adf38` adds the four canonical clean-schema columns/foreign keys, a centralized repeat-installer repair, and regressions for exact schema and repair behavior. Pre-fix RED, amended GREEN, native PHP 7.4 execution, and independent standards/spec reviews were retained; both review axes ended with zero actionable findings.
+- Repeat repair: exact `29adf38` repaired the incomplete live database. The four fields are nullable `int(10) unsigned`, all four foreign keys reference `campaign_external_url.id`, direct projections pass, and the semantic schema matches the protected pre-delete schema.
+- Final clean lifecycle: a fresh full backup passed `gzip -t`; an independent read-only gate returned GO; `--delete-database` exited `0` and removed only the `call_center` schema while performing the remover's expected module/menu/ACL/file/dialplan cleanup. Unrelated database names and unrelated dialplan content were unchanged. Reinstallation from the same exact commit exited `0` and recreated 24 tables, all four fields/FKs, grants, files, service, and `llamada_agendada` context.
+- Final health: source clean; semantic schema diff empty with both hashes `4d620f858cf73955b357346d9779fc8b69b6c01fb5cee893a70b5945436a2da8`; routes, Call Center activity, and channels zero; `issabeldialer` enabled/active as `asterisk`; Asterisk 18.19.0; HTTPS `200`; post-clean installer suite and PHP syntax pass.
+- Independent final verifier: CONFIRMED the exact source/table hash, four column/FK shapes, runtime projections, semantic schema equality, protected unrelated-state baselines, zero-use state, service/files/context, Asterisk, HTTPS, and final artifact hashes through a separate pinned read-only session.
+
+| Protected artifact | SHA-256 | Result |
+| --- | --- | --- |
+| `remove-keep-db.log` | `7f551d1d56c01ad02c8d8f9fbadd3661960e1d919a29a8bb00596ff35b1d48fd` | keep-database removal passed |
+| `reinstall-keep-db.log` | `1a4caf7905b0b70f73e6ece642ea78a2c3f295ceb7552c6c14ba2ba6c9319d75` | keep-database reinstall passed |
+| `remove-delete-db.log` | `7f551d1d56c01ad02c8d8f9fbadd3661960e1d919a29a8bb00596ff35b1d48fd` | initial delete passed |
+| `reinstall-clean-db.log` | `1a4caf7905b0b70f73e6ece642ea78a2c3f295ceb7552c6c14ba2ba6c9319d75` | installer passed; schema postcheck exposed the defect |
+| `reinstall-repair-29adf38.log` | `b83e748845c1c5c1a56d52d528af3f8ee893dd1b240eb675ee72fc691a14f10a` | repeat repair passed |
+| `call_center.before-fixed-delete.sql.gz` | `e2fd390559428ddb7f09ae492f6b1611987e64cdee713028e8d74ebf8ef1370e` | full backup integrity passed |
+| `remove-delete-db-29adf38.log` | `7f551d1d56c01ad02c8d8f9fbadd3661960e1d919a29a8bb00596ff35b1d48fd` | fixed-commit delete passed |
+| `reinstall-clean-db-29adf38.log` | `d306e6bdb37242ea9d8034232611b6d3304a1170ad2590580eb856fd10ada174` | fixed clean install passed |
+| `post-clean-29adf38-tests.log` | `5791af710d4fea37b92ab865495c246aef246b93c57ab8a89091ce739bc8dcc0` | native regression/PHP checks passed |
 
 ## Retained local-only evidence
 
@@ -139,6 +161,10 @@ Infrastructure screenshots remain outside the public repository under `environme
 ## Limitations
 
 - Exact Issabel media build and FreePBX-derived component versions remain unverified.
-- No removal, authenticated UI, dialer, agent, queue, inbound, outbound, or report workflow has passed; Task 9 clean-database removal/reinstallation remains unverified.
-- The local portable-PHP suite log timestamp predates the recorded `git update-index --chmod=+x` operation and is not used as post-fix proof; the fresh Rocky Linux clone at `751a62f` is the decisive GREEN evidence.
+- This was an upgrade/repeat/removal/clean-database exercise on a cloned disposable PBX, not a pristine ISO installation.
+- No authenticated UI, agent, queue, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed; no external call was placed.
+- The compressed SQL backup has no `CREATE DATABASE` or `USE` statement and was integrity-checked but not restore-rehearsed. Explicit database creation/selection is required for manual import; the Proxmox snapshot is the primary full rollback.
+- HTTPS health used the local endpoint with certificate verification disabled; it proves application reachability, not certificate trust.
+- Incoming campaign creation passes URL2/URL3 values to a method whose current signature omits those parameters; this separate workflow defect is recorded for the campaign phase and was not mixed into the installer fix.
+- The local portable-PHP suite log timestamp predates the recorded `git update-index --chmod=+x` operation and is not used as post-fix proof; fresh Rocky Linux clones at `751a62f` and `29adf38` provide the decisive staging evidence for their respective scenarios.
 - No external call will be used as Phase 1 evidence.
