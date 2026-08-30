@@ -170,7 +170,7 @@ assert_required_failure asterisk-reload
 # A missing command must fail in preflight rather than continuing installation.
 make_fixture
 rm -f -- "$stub_dir/asterisk"
-run_installer --local env
+run_installer --local env PATH="$stub_dir:/usr/local/bin:/usr/bin:/bin"
 assert_required_failure preflight
 
 # Unsupported Asterisk versions must not be installed against accidentally.
