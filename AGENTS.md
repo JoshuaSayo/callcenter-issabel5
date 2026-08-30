@@ -165,3 +165,15 @@ PETICION_AGENTES_AGENDADOS;
 | Module configs | `/var/www/html/modules/*/configs/default.conf.php` |
 | Asterisk config | `/etc/asterisk/` |
 | MySQL credentials | `/etc/issabel.conf` (mysqlrootpwd) |
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specifications are tracked in GitHub Issues for `JoshuaSayo/callcenter-issabel5`. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+This is a single-context repository using root `CONTEXT.md` and `docs/adr/` for domain documentation. See `docs/agents/domain.md`.
+
+Historical `.superpowers/` files are retained only as evidence from earlier work. Do not use Superpowers or treat those files as the active workflow.
