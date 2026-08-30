@@ -115,6 +115,18 @@ Each entry records environment, command or observation, result, and limitation. 
 - Label: unauthenticated network/web evidence only.
 - Limitation: no SSH login, Issabel login, database query, service restart, or call was performed.
 
+### E-P1-009 — authenticated staging upgrade/repeat validation
+
+- Date: 2026-08-30 Asia/Manila. Runtime: verified dedicated root key with a pinned ED25519 host key on VM 127; fresh public `develop` clone at `751a62f49f093381e2fac0b0dcc4c6c99f521fc2` in `/usr/src/callcenter-issabel5-develop-751a62f`. The stopped pre-fix clone remained untouched.
+- Pre-mutation test: `bash tests/install/run.sh` passed with `PASS test_baseline_collector`, `PASS: installer behavior tests`, `PASS test_lifecycle_common`, `PASS test_remove_script`, `PASS installer_lib`, and `PASS installer_entry`. The test ran with an isolated temporary command path that excluded the real host `asterisk`, so its declared missing-command case could not leak through the PBX runtime path.
+- Syntax: `php -l setup/installer_lib.php` and `php -l setup/installer.php` both reported no syntax errors on clone PHP 7.4.33.
+- Baseline: protected `baseline.env` mode `600`, size `2672`, SHA-256 `a59638e5d81a05187d4df3ec0d193f443bbfac2048f0f3d56da82921b0c75e36`; it contained no `mysqlrootpwd` line. Verified values: Rocky Linux 8.8; kernel `4.18.0-477.27.1.el8_8.x86_64`; PHP 7.4.33; MariaDB client/server 10.3.39; Asterisk 18.19.0; Apache 2.4.37; systemd 239; dialer enabled and active; `call_center` has 24 base tables.
+- Recovery evidence: schema-only pre-install backup mode `600`, SHA-256 `fe5c36bc7a38c67e37d0309967324f1521818e6383a2467cb617b8d338bc65af`; pre-install file-state SHA-256 `d0552b6e91d4be4b4667dc500d6af72906f475375a077e0c02af807c7876d476`. No database rows or database password were retained in documentation.
+- Upgrade/repeat commands: `bash build/5.0/install-issabel-callcenter.sh --local` twice under `pipefail`, with logs at `/root/callcenter-phase1/install-1.log` and `install-2.log`; each exited `0` and contains exactly one completion marker. The database password was compared only remotely and was absent from both logs.
+- Repeated health: `issabeldialer` enabled/active; Asterisk 18.19.0; `llamada_agendada` present; `/opt/issabel/dialer/dialerd` executable; Agent Console file present; HTTPS `200`; `call_center` table count `24` after each run.
+- Schema repeat comparison: raw post-install schema SHA-256 `21110fa6e0c06cf744b9bd1e4f58dd51f445ca87c46e1ead6b99f94a8931b33e`. The only normalized-diff line was mysqldump's generated `Dump completed` timestamp; after removing that volatile footer, both schema-only hashes were `c19896bdb243c76a2511df68ef4b5c4e26d56c89fd3ad8692cfa11ccf2485299`.
+- Label: authenticated Rocky Linux staging upgrade/repeat evidence; no external call was placed and no routes, trunks, GSM, or VPN configuration was changed on the PBX.
+
 ## Removal/Reinstallation
 
 No removal command has been run. The final Task 9 destructive scenario is clean-database removal/reinstallation on disposable VM 127; it is unverified and not yet executed. The snapshot must be rechecked before database deletion.
@@ -125,7 +137,7 @@ Infrastructure screenshots remain outside the public repository under `environme
 
 ## Limitations
 
-- Exact installed Issabel build, MariaDB version, systemd version, CLI PHP modules, and clone Asterisk version remain unverified.
-- No clean install, upgrade, removal, schema migration, authenticated UI, dialer, agent, queue, inbound, outbound, or report workflow has passed yet.
-- Local PHP evidence remains simulated/unit/syntax evidence; Task 8 must perform staging checks before mutation.
+- Exact Issabel media build and FreePBX-derived component versions remain unverified.
+- No removal, authenticated UI, dialer, agent, queue, inbound, outbound, or report workflow has passed; Task 9 clean-database removal/reinstallation remains unverified.
+- The local portable-PHP suite log timestamp predates the recorded `git update-index --chmod=+x` operation and is not used as post-fix proof; the fresh Rocky Linux clone at `751a62f` is the decisive GREEN evidence.
 - No external call will be used as Phase 1 evidence.
