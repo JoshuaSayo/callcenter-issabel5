@@ -9,7 +9,7 @@
 | Component | Documented | Observed externally | Verified on clone | Current claim |
 | --- | --- | --- | --- | --- |
 | Issabel media | `issabel5-USB-DVD-x86_64-20240430.iso` in official Issabel 5 SourceForge listing | User identifies this as the deployed media | Unverified | Exact media target known; installed build unknown |
-| Issabel module | Repository `RELEASE='5.0.0-1'`; README describes Call Center 5.0.0-1 | User reports Call Center already installed on source test server | `5.0.0-1` installed twice successfully at clone commit `751a62f` | Upgrade/repeat verified on clone |
+| Issabel module | Repository `RELEASE='5.0.0-1'`; README describes Call Center 5.0.0-1 | User reports Call Center already installed on source test server | Installer release string `5.0.0-1` appeared once in each successful `751a62f` installer log | Upgrade/repeat installer release verified on clone; package/module-registry version not independently queried |
 | Operating system | Issabel 5 release documentation names Rocky Linux 8.8 | Console screenshot shows Rocky Linux 8.8 | Rocky Linux 8.8 (Green Obsidian) | Verified on clone |
 | Kernel | No exact media claim retained | Console screenshot shows `4.18.0-477.27.1.el8_8.x86_64` | `4.18.0-477.27.1.el8_8.x86_64` | Verified on clone |
 | PHP | README claims 5.4 through 8.0 compatibility | HTTPS header reports PHP 7.4.33 | PHP 7.4.33 CLI; both installer PHP files pass syntax | Verified on clone |
