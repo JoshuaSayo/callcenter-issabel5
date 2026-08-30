@@ -91,6 +91,7 @@ function runCallCenterInstaller()
     crearColumnaSiNoExiste($pDB, 'call_center', 'campaign_entry',
         'id_url',
         "ADD COLUMN id_url int unsigned, ADD FOREIGN KEY (id_url) REFERENCES campaign_external_url (id)");
+    ensureCampaignExternalUrlColumns($pDB);
     crearColumnaSiNoExiste($pDB, 'call_center', 'calls',
         'trunk',
         "ADD COLUMN trunk varchar(50)");
@@ -206,6 +207,22 @@ EXISTE_COLUMNA;
         cc_db_query($pDB, $sql);
     } else {
         fputs(STDERR, "INFO: Ya existe $sTabla.$sColumna en base de datos $sDatabase. | EN: INFO: $sTabla.$sColumna already exists in database $sDatabase.\n");
+    }
+}
+
+function ensureCampaignExternalUrlColumns($pDB)
+{
+    $columns = array(
+        array('campaign', 'id_url2'),
+        array('campaign', 'id_url3'),
+        array('campaign_entry', 'id_url2'),
+        array('campaign_entry', 'id_url3'),
+    );
+    foreach ($columns as $column) {
+        $tableName = $column[0];
+        $columnName = $column[1];
+        crearColumnaSiNoExiste($pDB, 'call_center', $tableName, $columnName,
+            "ADD COLUMN $columnName int unsigned, ADD FOREIGN KEY ($columnName) REFERENCES campaign_external_url (id)");
     }
 }
 

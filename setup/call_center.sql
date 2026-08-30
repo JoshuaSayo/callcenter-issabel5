@@ -167,9 +167,13 @@ CREATE TABLE IF NOT EXISTS `campaign` (
     `script`            text NOT NULL,
     `estatus`           varchar(1) NOT NULL default 'A',
     `id_url`            int unsigned,
+    `id_url2`           int unsigned,
+    `id_url3`           int unsigned,
 
-  PRIMARY KEY  (`id`),
-  FOREIGN KEY (id_url)  REFERENCES campaign_external_url(id)
+    PRIMARY KEY  (`id`),
+    FOREIGN KEY (id_url)  REFERENCES campaign_external_url(id),
+    FOREIGN KEY (id_url2) REFERENCES campaign_external_url(id),
+    FOREIGN KEY (id_url3) REFERENCES campaign_external_url(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /* Upgrade from old length, if it applies */
@@ -345,10 +349,14 @@ CREATE TABLE IF NOT EXISTS campaign_entry
     estatus             varchar(1)  NOT NULL DEFAULT 'A',
     script              text    NOT NULL,
     id_url              int unsigned,
+    id_url2             int unsigned,
+    id_url3             int unsigned,
 
     FOREIGN KEY (id_queue_call_entry) REFERENCES queue_call_entry(id),
     FOREIGN KEY (id_form) REFERENCES form(id),
-    FOREIGN KEY (id_url)  REFERENCES campaign_external_url(id)
+    FOREIGN KEY (id_url)  REFERENCES campaign_external_url(id),
+    FOREIGN KEY (id_url2) REFERENCES campaign_external_url(id),
+    FOREIGN KEY (id_url3) REFERENCES campaign_external_url(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*
