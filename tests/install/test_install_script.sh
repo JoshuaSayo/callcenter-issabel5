@@ -47,7 +47,11 @@ if [[ "${FAIL_COMMAND:-}" == php ]]; then exit 17; fi
 if [[ "${FAIL_COMMAND:-}" == php-interrupt ]]; then kill -TERM "$PPID"; exit 143; fi
 exit 0
 '
-    make_stub git '[[ "${FAIL_COMMAND:-}" == git ]] && exit 47; exit 0'
+    make_stub git '
+[[ -n "${GIT_ARGS_FILE:-}" ]] && printf "%s\\n" "$@" > "$GIT_ARGS_FILE"
+[[ "${FAIL_COMMAND:-}" == git ]] && exit 47
+exit 0
+'
     make_stub cp '
 [[ "${FAIL_COMMAND:-}" == cp ]] && exit 48
 [[ "${FAIL_COMMAND:-}" == dashboard-cp && "$*" == *ProcessesStatus/images* ]] && exit 48
@@ -188,6 +192,15 @@ make_fixture
 run_installer '' env FAIL_COMMAND=git
 assert_required_failure source-clone
 assert_no_temp_dirs
+
+# A default install must clone the owner repository, not the upstream project.
+make_fixture
+GIT_ARGS_FILE="$fixture_root/git-args"
+run_installer '' env GIT_ARGS_FILE="$GIT_ARGS_FILE"
+assert_required_failure source-layout
+mapfile -t git_args < "$GIT_ARGS_FILE"
+[[ "${git_args[0]:-}" == clone ]] || fail 'default source command is not git clone'
+[[ "${git_args[1]:-}" == 'https://github.com/JoshuaSayo/callcenter-issabel5.git' ]] || fail "default source repository is not owner-controlled: ${git_args[1]:-missing}"
 
 # A missing local source component must stop before installation mutations.
 make_fixture

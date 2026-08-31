@@ -9,7 +9,7 @@ Phase 1 complete — reviewable.
 - Approved design commits: `02a2e05`, `ee5f7c0`.
 - Approved implementation plan commit: `9a7c033`.
 - Isolated `develop` worktree created at `.worktrees/issabel5-phase1`; main checkout returned to `master`.
-- Fork created at `JoshuaSayo/callcenter-issabel5`; `origin` is the fork and `upstream` is `ISSABELPBX/callcenter-issabel5`.
+- Owner repository configured at `JoshuaSayo/callcenter-issabel5`; all development and releases remain there unless the user explicitly changes the distribution policy.
 - `origin/develop` published through reviewed implementation commit `29adf38` before the final evidence update.
 - Staging VM 127 and snapshot `baseline-before-callcenter-work` confirmed by user-supplied evidence.
 - Task 1 engineering records completed in commit `b61c1c3`.
@@ -33,11 +33,19 @@ Phase 1 complete — reviewable.
 
 ## Exact next action
 
-Review the Phase 1 draft pull request and select the next focused subsystem design.
+Select the next focused subsystem design and continue on `origin/develop` under the owner-repository-only release policy.
+
+## Distribution policy
+
+- Do not open or update pull requests against `ISSABELPBX/callcenter-issabel5`.
+- Push changes and publish any future release only in `JoshuaSayo/callcenter-issabel5`.
+- The online installer now defaults to the owner repository; use `--local` for an authenticated/private checkout.
+- The owner repository is currently a public GitHub fork; a truly private repository requires a separate standalone repository.
 
 ## Branch and remotes
 
 - Branch: `develop`
 - Fork remote: `origin` → `https://github.com/JoshuaSayo/callcenter-issabel5.git`
-- Read-only upstream convention: `upstream` → `https://github.com/ISSABELPBX/callcenter-issabel5.git`
+- Fetch-only reference: `upstream` → `https://github.com/ISSABELPBX/callcenter-issabel5.git`
+- Local push default: `origin`; the `upstream` push URL is disabled.
 - Latest staging source checkpoint: `29adf38`

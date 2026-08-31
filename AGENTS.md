@@ -153,6 +153,7 @@ PETICION_AGENTES_AGENDADOS;
 4. **Check impact** - Verify changes don't affect other functionality
 5. **No PHP 8+ features** - Must work on PHP 5.4+
 6. **English for new code** - Variables, functions, comments in English; logs bilingual
+7. **Owner repository only** - Push changes and publish releases only to `JoshuaSayo/callcenter-issabel5`; do not open or update pull requests against `ISSABELPBX/callcenter-issabel5` unless the user explicitly changes this policy
 
 ## File Locations
 

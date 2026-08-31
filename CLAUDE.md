@@ -11,7 +11,7 @@ Issabel Call Center module for Issabel PBX - a predictive dialer and call center
 ```bash
 # Full installation (run as root)
 cd /usr/src
-git clone https://github.com/ISSABELPBX/callcenter-issabel5.git callcenter
+git clone https://github.com/JoshuaSayo/callcenter-issabel5.git callcenter
 cd callcenter
 bash build/5.0/install-issabel-callcenter.sh -l
 

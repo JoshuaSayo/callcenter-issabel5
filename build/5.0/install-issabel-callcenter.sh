@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 RELEASE='5.0.0-1'
-GITHUB_ACCOUNT='ISSABELPBX'
+GITHUB_ACCOUNT='JoshuaSayo'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CC_INSTALL_ROOT="${CALLCENTER_INSTALL_ROOT:-}"
 source "$SCRIPT_DIR/lib/callcenter-lifecycle.sh"
