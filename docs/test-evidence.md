@@ -116,7 +116,7 @@ Each entry records environment, command or observation, result, and limitation. 
 - Review-found boundary reproduction: PHP 7.4 converted raw `12junk` to integer `12`, while `ctype_digit('12junk')` returned false. The controller now preserves raw non-empty values for class validation.
 - Verified locally: create and update bind all three URL IDs in order; invalid or partially numeric URL2/URL3 values are rejected before any database read/write; valid update emits no response output.
 - Test boundary: the real campaign class runs against a deterministic fake `paloDB`; no live database, UI, queue, Asterisk, or call was used.
-- Limitations: PHP 5.4 compatibility is syntax-reviewed but not runtime-tested. Authenticated staging create/read/edit/delete evidence is still required before CC5-010 is staging verified.
+- Limitations: PHP 5.4 compatibility is syntax-reviewed but not runtime-tested. This local entry alone is fake-database evidence; matching native staging evidence is recorded in E-CC5-010-S1.
 
 ## Staging
 
@@ -140,6 +140,17 @@ Each entry records environment, command or observation, result, and limitation. 
 - Repeated health: `issabeldialer` enabled/active; Asterisk 18.19.0; `llamada_agendada` present; `/opt/issabel/dialer/dialerd` executable; Agent Console file present; HTTPS `200`; `call_center` table count `24` after each run.
 - Schema repeat comparison: raw post-install schema SHA-256 `21110fa6e0c06cf744b9bd1e4f58dd51f445ca87c46e1ead6b99f94a8931b33e`. The only normalized-diff line was mysqldump's generated `Dump completed` timestamp; after removing that volatile footer, both schema-only hashes were `c19896bdb243c76a2511df68ef4b5c4e26d56c89fd3ad8692cfa11ccf2485299`.
 - Label: authenticated Rocky Linux staging upgrade/repeat evidence; no external call was placed and no routes, trunks, GSM, or VPN configuration was changed on the PBX.
+
+### E-CC5-010-S1 — authenticated incoming campaign class/database validation
+
+- Date: 2026-08-31 Asia/Manila. Target: snapshot-backed VM 127 at `10.39.188.63`; exact clean clone `/usr/src/callcenter-issabel5-develop-e2e2ba3` at `e2e2ba32088eb52372459aa21a951f9317ab97e8`.
+- Native checks: PHP 7.4.33 `tests/campaign/test_incoming_campaign.php` returned `PASS incoming_campaign`; controller, class, test, and staging harness lints reported no syntax errors.
+- Protected harness: `/root/callcenter-phase1/cc5010-staging.php`, mode `600`, SHA-256 `7b58cd07c19c3df320c8ae49616759fb9d283a67819077ba0b91a49b3d48d74f`.
+- Isolation: the harness used one uncommitted transaction against InnoDB `queue_call_entry`, `campaign_external_url`, and `campaign_entry`; synthetic rows were invisible to the dialer and rolled back. No route, trunk, service, dialplan, or installed module file changed.
+- Behavior: partially numeric URL2 was rejected; create/read preserved URL1/URL2/URL3; the campaign was made inactive before any commit; update/read preserved the reordered URLs and emitted no debug output; transactional delete verification passed.
+- Direct result: `PASS cc5010_staging ... active_before_after=0 current_before_after=0 persistent_rows=0`.
+- Independent verifier: CONFIRMED the pinned host, exact clean source, harness hash, native checks, InnoDB rollback semantics, zero campaign/URL residue, zero active campaigns/current calls/channels, active dialer/Asterisk, Asterisk 18.19.0, and HTTPS `200`.
+- Scope: authenticated SSH class/database staging evidence, not browser UI behavior or the separate `delete_campaign()` method. No telephony call was placed.
 
 ## Removal/Reinstallation
 
@@ -175,7 +186,7 @@ Infrastructure screenshots remain outside the public repository under `environme
 
 - Exact Issabel media build and FreePBX-derived component versions remain unverified.
 - This was an upgrade/repeat/removal/clean-database exercise on a cloned disposable PBX, not a pristine ISO installation.
-- No authenticated UI, agent, queue, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed; no external call was placed.
+- No authenticated browser UI, agent, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed. CC5-010 has a rollback-isolated class/database staging cycle only; no external call was placed.
 - The compressed SQL backup has no `CREATE DATABASE` or `USE` statement and was integrity-checked but not restore-rehearsed. Explicit database creation/selection is required for manual import; the Proxmox snapshot is the primary full rollback.
 - HTTPS health used the local endpoint with certificate verification disabled; it proves application reachability, not certificate trust.
 - The local portable-PHP suite log timestamp predates the recorded `git update-index --chmod=+x` operation and is not used as post-fix proof; fresh Rocky Linux clones at `751a62f` and `29adf38` provide the decisive staging evidence for their respective scenarios.

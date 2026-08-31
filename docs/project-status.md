@@ -2,11 +2,11 @@
 
 ## Current phase
 
-Phase 1 complete; focused incoming-campaign contract repair in progress.
+Phase 1 complete; CC5-010 incoming-campaign contract staging verified.
 
 ## Active work
 
-- CC5-010: local PHP 7.4 red/green coverage confirms incoming campaign create/update now preserve and validate URL1/URL2/URL3 without leaking debug SQL. Exact-commit staging create/read/edit/delete validation remains pending.
+- CC5-011 is the next bounded issue: remove the privileged incoming-page lazy schema migrator now that the canonical installer/schema prerequisite is staging verified.
 
 ## Completed
 
@@ -25,6 +25,7 @@ Phase 1 complete; focused incoming-campaign contract repair in progress.
 - Task 7 pre-staging evidence checkpoint recorded: aggregate simulated lifecycle tests, Bash syntax, and Git checks pass locally; Docker engine is unavailable.
 - Task 8 authenticated staging validation completed on a fresh clone at `751a62f`: secret-safe baseline, schema/file recovery evidence, two successful local installer runs, repeated service/Asterisk/dialplan/HTTPS/database health, and stable normalized schema equality are recorded in E-P1-009.
 - Task 9 keep/delete removal and clean reinstallation completed on snapshot-backed VM 127. The first clean install exposed the canonical URL2/URL3 schema defect; fix `29adf38` passed TDD, independent standards/spec review, native PHP 7.4 regression, repeat repair, final delete/reinstall, semantic schema equality, and independent live verification in E-P1-010.
+- CC5-010 completed in `e2e2ba3`: incoming create/update preserve and validate URL1/URL2/URL3, raw form values are not lossy-cast before validation, and update no longer emits debug SQL. Local TDD, native staging PHP 7.4 tests, a rollback-isolated class/database cycle, and independent verification passed in E-CC5-010-S1.
 - Final staging state: Call Center installed; `issabeldialer` enabled/active as `asterisk`; 24 tables with all four URL2/URL3 fields/FKs; `llamada_agendada` loaded; Asterisk 18.19.0; HTTPS `200`; zero routes/calls.
 
 ## Known limitations
@@ -33,12 +34,12 @@ Phase 1 complete; focused incoming-campaign contract repair in progress.
 - Docker Desktop is unavailable because its inference manager rejects the Windows user path; portable Windows PHP 7.4.33 provides local unit/syntax evidence only.
 - The lifecycle target was a cloned disposable PBX, not a pristine ISO install; no authenticated UI or telephony call-flow was exercised.
 - Exact installed Issabel media and FreePBX-derived component versions remain unverified.
-- CC5-010 has local PHP 7.4 evidence only; no authenticated incoming-campaign UI workflow has passed yet, and PHP 5.4 compatibility is syntax-reviewed rather than runtime-tested.
+- CC5-010 has class/database staging evidence but no authenticated browser UI workflow; PHP 5.4 compatibility is syntax-reviewed rather than runtime-tested.
 - The legacy incoming-campaign page still invokes a privileged lazy schema migrator; CC5-011 tracks its removal separately from the bounded URL contract repair.
 
 ## Exact next action
 
-Deploy the reviewed CC5-010 commit to VM 127, then safely validate one synthetic incoming campaign create/read/edit/delete cycle without activating it or placing a call.
+Remove and regression-test the CC5-011 page-load schema migrator, then verify on VM 127 that loading incoming campaigns performs no schema or privilege mutation.
 
 ## Distribution policy
 
@@ -53,5 +54,5 @@ Deploy the reviewed CC5-010 commit to VM 127, then safely validate one synthetic
 - Fork remote: `origin` → `https://github.com/JoshuaSayo/callcenter-issabel5.git`
 - Fetch-only reference: `upstream` → `https://github.com/ISSABELPBX/callcenter-issabel5.git`
 - Local push default: `origin`; the `upstream` push URL is disabled.
-- Latest owner-repository checkpoint: `a184a9c`
-- Latest staging source checkpoint: `29adf38`
+- Latest owner-repository checkpoint: `e2e2ba3`
+- Latest staging source checkpoint: `e2e2ba3`
