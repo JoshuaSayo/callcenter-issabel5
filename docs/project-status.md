@@ -2,11 +2,11 @@
 
 ## Current phase
 
-Phase 1 complete; CC5-010 incoming-campaign contract staging verified.
+Phase 1 complete; CC5-011 incoming page-migration removal staging verified.
 
 ## Active work
 
-- CC5-011 is the next bounded issue: remove the privileged incoming-page lazy schema migrator now that the canonical installer/schema prerequisite is staging verified.
+- CC5-012 is the next bounded issue: remove the independent privileged outgoing-page lazy schema migrator.
 
 ## Completed
 
@@ -26,6 +26,7 @@ Phase 1 complete; CC5-010 incoming-campaign contract staging verified.
 - Task 8 authenticated staging validation completed on a fresh clone at `751a62f`: secret-safe baseline, schema/file recovery evidence, two successful local installer runs, repeated service/Asterisk/dialplan/HTTPS/database health, and stable normalized schema equality are recorded in E-P1-009.
 - Task 9 keep/delete removal and clean reinstallation completed on snapshot-backed VM 127. The first clean install exposed the canonical URL2/URL3 schema defect; fix `29adf38` passed TDD, independent standards/spec review, native PHP 7.4 regression, repeat repair, final delete/reinstall, semantic schema equality, and independent live verification in E-P1-010.
 - CC5-010 completed in `e2e2ba3`: incoming create/update preserve and validate URL1/URL2/URL3, raw form values are not lossy-cast before validation, and update no longer emits debug SQL. Local TDD, native staging PHP 7.4 tests, a rollback-isolated class/database cycle, and independent verification passed in E-CC5-010-S1.
+- CC5-011 completed in `2d291bb`: the incoming request path no longer calls or exports its lazy schema/privilege migrator. Executable local RED/GREEN, native staging tests, exact installed-file matching, an installed-source bootstrap check, stable schema/grant fingerprints, and independent verification passed in E-CC5-011-S1.
 - Final staging state: Call Center installed; `issabeldialer` enabled/active as `asterisk`; 24 tables with all four URL2/URL3 fields/FKs; `llamada_agendada` loaded; Asterisk 18.19.0; HTTPS `200`; zero routes/calls.
 
 ## Known limitations
@@ -35,11 +36,11 @@ Phase 1 complete; CC5-010 incoming-campaign contract staging verified.
 - The lifecycle target was a cloned disposable PBX, not a pristine ISO install; no authenticated UI or telephony call-flow was exercised.
 - Exact installed Issabel media and FreePBX-derived component versions remain unverified.
 - CC5-010 has class/database staging evidence but no authenticated browser UI workflow; PHP 5.4 compatibility is syntax-reviewed rather than runtime-tested.
-- The legacy incoming-campaign page still invokes a privileged lazy schema migrator; CC5-011 tracks its removal separately from the bounded URL contract repair.
+- The outgoing-campaign page retains an independent privileged lazy schema migrator; CC5-012 tracks it separately. Campaign monitoring also retains a separate legacy configuration parser that was not assessed by CC5-011.
 
 ## Exact next action
 
-Remove and regression-test the CC5-011 page-load schema migrator, then verify on VM 127 that loading incoming campaigns performs no schema or privilege mutation.
+Remove and regression-test the CC5-012 outgoing page-load schema migrator, then repeat the exact-commit staging fingerprint gate.
 
 ## Distribution policy
 
@@ -54,5 +55,5 @@ Remove and regression-test the CC5-011 page-load schema migrator, then verify on
 - Fork remote: `origin` → `https://github.com/JoshuaSayo/callcenter-issabel5.git`
 - Fetch-only reference: `upstream` → `https://github.com/ISSABELPBX/callcenter-issabel5.git`
 - Local push default: `origin`; the `upstream` push URL is disabled.
-- Latest owner-repository checkpoint: `e2e2ba3`
-- Latest staging source checkpoint: `e2e2ba3`
+- Latest owner-repository checkpoint: `2d291bb`
+- Latest staging source checkpoint: `2d291bb`

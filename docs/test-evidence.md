@@ -118,6 +118,15 @@ Each entry records environment, command or observation, result, and limitation. 
 - Test boundary: the real campaign class runs against a deterministic fake `paloDB`; no live database, UI, queue, Asterisk, or call was used.
 - Limitations: PHP 5.4 compatibility is syntax-reviewed but not runtime-tested. This local entry alone is fake-database evidence; matching native staging evidence is recorded in E-CC5-010-S1.
 
+### E-CC5-011-L1 — incoming request owns no migration
+
+- Date: 2026-08-31 Asia/Manila. Runtime: standalone Windows PHP 7.4.33 at `.codex-state/runtime/php-7.4.33/php.exe`.
+- Executable boundary: the test loads the real incoming class and real `_moduleContent()`, fails if the legacy helpers remain exported or a migration sentinel is called, and stops at deterministic `paloDB` construction before any external database access.
+- Accepted RED: `php tests/campaign/test_incoming_page_contract.php` exited `1` with `FAIL incoming_page_contract: legacy page-load migration helpers remain exported`. A preceding test-only cleanup warning was corrected before RED was accepted; production remained unchanged.
+- GREEN: the identical command exited `0` with `PASS incoming_page_contract` after only the incoming bootstrap call and its two privileged helpers were removed.
+- Integrated checks: the CC5-010 campaign regression, installer repair regression, canonical schema contract, relevant PHP lints, warning-enabled request test, and Git diff checks passed. A fresh read-only seam reviewer found no blocker.
+- Scope: PHP 7.4 executable source evidence. The outgoing module's independent migration copy and campaign monitoring's legacy config parser were not changed.
+
 ## Staging
 
 ### E-P1-003 — unauthenticated reachability
@@ -151,6 +160,16 @@ Each entry records environment, command or observation, result, and limitation. 
 - Direct result: `PASS cc5010_staging ... active_before_after=0 current_before_after=0 persistent_rows=0`.
 - Independent verifier: CONFIRMED the pinned host, exact clean source, harness hash, native checks, InnoDB rollback semantics, zero campaign/URL residue, zero active campaigns/current calls/channels, active dialer/Asterisk, Asterisk 18.19.0, and HTTPS `200`.
 - Scope: authenticated SSH class/database staging evidence, not browser UI behavior or the separate `delete_campaign()` method. No telephony call was placed.
+
+### E-CC5-011-S1 — exact installed incoming request-bootstrap validation
+
+- Date: 2026-08-31 Asia/Manila. Target: snapshot-backed VM 127 at `10.39.188.63`; exact clean clone `/usr/src/callcenter-issabel5-develop-2d291bb` and installed incoming files at `2d291bb02e00d0a769ed09c72fdbdeaeaeb1857b`.
+- Native checks: PHP 7.4.33 request/campaign/installer regressions, canonical schema contract, and four relevant lints passed before installation.
+- Install and execution: the normal `--local` installer copied incoming controller/class files whose SHA-256 values match the exact clone. The request-contract test executed against those installed files and returned `PASS incoming_page_contract` without reaching a real database boundary.
+- Stable state: URL schema/FK fingerprint remained `82d69e2c909df10ba6be8c511b018a403cf36d984b43ad786853f5a67d8efe5c`; `call_center` grant fingerprint remained `c22583ca2a5a337388ca484f1c876d603c3a3892dce75f24ab81fdad1b922c13`; four URL2/URL3 columns and four foreign keys remained present. Routes, Call Center activity, and Asterisk channels remained `0`; dialer stayed active/enabled as `asterisk`; Asterisk 18.19.0 and HTTPS `200` remained healthy.
+- Protected evidence: result mode `600`, SHA-256 `c475c64e89c3cdbe8bbbb5fed8571ddfaf5526df7f37085290069432bcbc1770`; installer log mode `600`, SHA-256 `fb3edd990b27ae165b59ca095cc1d768379dba08ddf1fad2b1e573ea8a5211c8`.
+- Evidence correction: the install wrapper's outer SSH process returned `1` after writing its gated success record. It was not treated as standalone proof and the installer was not rerun. A fresh read-only postcheck exited `0`; a separate strict pinned-host verifier then exited `0` and returned `CONFIRMED` for the exact current state and artifact hashes.
+- Scope: installed-source request-bootstrap evidence, not an authenticated browser UI request or telephony call. HTTPS used loopback with certificate verification disabled. Outgoing and monitoring paths were not tested.
 
 ## Removal/Reinstallation
 
@@ -186,7 +205,7 @@ Infrastructure screenshots remain outside the public repository under `environme
 
 - Exact Issabel media build and FreePBX-derived component versions remain unverified.
 - This was an upgrade/repeat/removal/clean-database exercise on a cloned disposable PBX, not a pristine ISO installation.
-- No authenticated browser UI, agent, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed. CC5-010 has a rollback-isolated class/database staging cycle only; no external call was placed.
+- No authenticated browser UI, agent, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed. CC5-010 has a rollback-isolated class/database staging cycle and CC5-011 has installed-source request-bootstrap evidence only; no external call was placed.
 - The compressed SQL backup has no `CREATE DATABASE` or `USE` statement and was integrity-checked but not restore-rehearsed. Explicit database creation/selection is required for manual import; the Proxmox snapshot is the primary full rollback.
 - HTTPS health used the local endpoint with certificate verification disabled; it proves application reachability, not certificate trust.
 - The local portable-PHP suite log timestamp predates the recorded `git update-index --chmod=+x` operation and is not used as post-fix proof; fresh Rocky Linux clones at `751a62f` and `29adf38` provide the decisive staging evidence for their respective scenarios.
