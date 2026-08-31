@@ -58,8 +58,6 @@ function _moduleContent(&$smarty, $module_name)
     // EN: CallCenter database connection
     $pDB = new paloDB($arrConf['cadena_dsn']);
 
-    checkDataBase();
-
     // Mostrar pantalla correspondiente
     // EN: Show corresponding screen
     $contenidoModulo = '';
