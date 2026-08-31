@@ -425,9 +425,9 @@ function formEditCampaign($pDB, $smarty, $module_name, $local_templates_dir, $id
                                             $time_fin,
                                             $_POST['rte_script'],
                                             NULL,
-                                            ($_POST['external_url'] == '') ? NULL : (int)$_POST['external_url'],
-                                            ($_POST['external_url2'] == '') ? NULL : (int)$_POST['external_url2'],
-                                            ($_POST['external_url3'] == '') ? NULL : (int)$_POST['external_url3']);
+                                            ($_POST['external_url'] == '') ? NULL : $_POST['external_url'],
+                                            ($_POST['external_url2'] == '') ? NULL : $_POST['external_url2'],
+                                            ($_POST['external_url3'] == '') ? NULL : $_POST['external_url3']);
                             if (is_null($id_campaign)) $bExito = FALSE;
                         } elseif ($bDoUpdate) {
                             $bExito = $oCamp->updateCampaign(
@@ -440,9 +440,9 @@ function formEditCampaign($pDB, $smarty, $module_name, $local_templates_dir, $id
                                             $time_fin,
                                             $_POST['rte_script'],
                                             NULL,
-                                            ($_POST['external_url'] == '') ? NULL : (int)$_POST['external_url'],
-                                            ($_POST['external_url2'] == '') ? NULL : (int)$_POST['external_url2'],
-                                            ($_POST['external_url3'] == '') ? NULL : (int)$_POST['external_url3']);
+                                            ($_POST['external_url'] == '') ? NULL : $_POST['external_url'],
+                                            ($_POST['external_url2'] == '') ? NULL : $_POST['external_url2'],
+                                            ($_POST['external_url3'] == '') ? NULL : $_POST['external_url3']);
                         }
 
                         // Introducir o actualizar formularios

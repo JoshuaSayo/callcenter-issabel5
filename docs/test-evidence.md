@@ -105,6 +105,19 @@ Each entry records environment, command or observation, result, and limitation. 
 - Start: `2026-08-29T22:20:34.5642830+08:00`; end: `2026-08-29T22:20:34.6126785+08:00`; exit: `0`; decisive output: empty.
 - Label: final committed-document static evidence, before the evidence-only update below.
 
+## Campaign workflows
+
+### E-CC5-010-L1 — incoming external URL contract
+
+- Date: 2026-08-31 Asia/Manila. Runtime: standalone Windows PHP 7.4.33 at `.codex-state/runtime/php-7.4.33/php.exe`.
+- RED command: `php tests/campaign/test_incoming_campaign.php`; exit `1`. Decisive assertion: create bound URL1 as `11` but bound URL2 and URL3 as `NULL`.
+- GREEN command: the same test after the class fix; exit `0`; decisive output: `PASS incoming_campaign`.
+- Syntax commands: `php -l modules/campaign_in/libs/paloSantoIncomingCampaign.class.php` and `php -l tests/campaign/test_incoming_campaign.php`; both exited `0` with no syntax errors.
+- Review-found boundary reproduction: PHP 7.4 converted raw `12junk` to integer `12`, while `ctype_digit('12junk')` returned false. The controller now preserves raw non-empty values for class validation.
+- Verified locally: create and update bind all three URL IDs in order; invalid or partially numeric URL2/URL3 values are rejected before any database read/write; valid update emits no response output.
+- Test boundary: the real campaign class runs against a deterministic fake `paloDB`; no live database, UI, queue, Asterisk, or call was used.
+- Limitations: PHP 5.4 compatibility is syntax-reviewed but not runtime-tested. Authenticated staging create/read/edit/delete evidence is still required before CC5-010 is staging verified.
+
 ## Staging
 
 ### E-P1-003 — unauthenticated reachability
@@ -165,6 +178,5 @@ Infrastructure screenshots remain outside the public repository under `environme
 - No authenticated UI, agent, queue, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed; no external call was placed.
 - The compressed SQL backup has no `CREATE DATABASE` or `USE` statement and was integrity-checked but not restore-rehearsed. Explicit database creation/selection is required for manual import; the Proxmox snapshot is the primary full rollback.
 - HTTPS health used the local endpoint with certificate verification disabled; it proves application reachability, not certificate trust.
-- Incoming campaign creation passes URL2/URL3 values to a method whose current signature omits those parameters; this separate workflow defect is recorded for the campaign phase and was not mixed into the installer fix.
 - The local portable-PHP suite log timestamp predates the recorded `git update-index --chmod=+x` operation and is not used as post-fix proof; fresh Rocky Linux clones at `751a62f` and `29adf38` provide the decisive staging evidence for their respective scenarios.
 - No external call will be used as Phase 1 evidence.

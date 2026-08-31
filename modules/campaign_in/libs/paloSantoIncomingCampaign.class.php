@@ -173,12 +173,19 @@ SQL_CAMPANIAS;
      *                              EN: Script to associate with this campaign
      * @param   $id_form            ID del formulario a asociar a esta campaña, o NULL
      *                              EN: ID of the form to associate with this campaign, or NULL
+     * @param   $id_url             ID del primer URL externo, o NULL
+     *                              EN: First external URL ID, or NULL
+     * @param   $id_url2            ID del segundo URL externo, o NULL
+     *                              EN: Second external URL ID, or NULL
+     * @param   $id_url3            ID del tercer URL externo, o NULL
+     *                              EN: Third external URL ID, or NULL
      *
      * @return  int    El ID de la campaña recién creada, o NULL en caso de error
      *                  EN: The ID of the newly created campaign, or NULL on error
      */
     function createEmptyCampaign($sNombre, $sQueue, $sFechaInicial, $sFechaFinal,
-        $sHoraInicio, $sHoraFinal, $script, $id_form = NULL, $id_url = NULL)
+        $sHoraInicio, $sHoraFinal, $script, $id_form = NULL, $id_url = NULL,
+        $id_url2 = NULL, $id_url3 = NULL)
     {
         $sNombre = trim($sNombre);
         $sQueue = trim($sQueue);
@@ -229,6 +236,14 @@ SQL_CAMPANIAS;
             return NULL;
         }
         if (!is_null($id_url) && !ctype_digit("$id_url")) {
+            $this->errMsg = _tr('URL ID is not numeric');
+            return NULL;
+        }
+        if (!is_null($id_url2) && !ctype_digit("$id_url2")) {
+            $this->errMsg = _tr('URL ID is not numeric');
+            return NULL;
+        }
+        if (!is_null($id_url3) && !ctype_digit("$id_url3")) {
             $this->errMsg = _tr('URL ID is not numeric');
             return NULL;
         }
@@ -418,6 +433,14 @@ SQL_CAMPANIAS;
             $this->errMsg = _tr('URL ID is not numeric');
             return false;
         }
+        if (!is_null($id_url2) && !ctype_digit("$id_url2")) {
+            $this->errMsg = _tr('URL ID is not numeric');
+            return false;
+        }
+        if (!is_null($id_url3) && !ctype_digit("$id_url3")) {
+            $this->errMsg = _tr('URL ID is not numeric');
+            return false;
+        }
 
         // Verificar que el nombre de la campaña es único
         // EN: Verify that the campaign name is unique
@@ -451,7 +474,6 @@ SQL_CAMPANIAS;
                 'id_form = ?, datetime_init = ?, datetime_end = ?, '.
                 'daytime_init = ?, daytime_end = ?, script = ?, id_url = ?, id_url2 = ?, id_url3 = ? '.
             'WHERE id = ?';
-        var_dump($sPeticionSQL);
         $paramSQL = array($sNombre, $idQueue, $id_form, $sFechaInicial,
             $sFechaFinal, $sHoraInicio, $sHoraFinal, $script, $id_url, $id_url2, $id_url3, $idCampaign);
         $result = $this->_DB->genQuery($sPeticionSQL, $paramSQL);

@@ -2,7 +2,11 @@
 
 ## Current phase
 
-Phase 1 complete — reviewable.
+Phase 1 complete; focused incoming-campaign contract repair in progress.
+
+## Active work
+
+- CC5-010: local PHP 7.4 red/green coverage confirms incoming campaign create/update now preserve and validate URL1/URL2/URL3 without leaking debug SQL. Exact-commit staging create/read/edit/delete validation remains pending.
 
 ## Completed
 
@@ -29,11 +33,12 @@ Phase 1 complete — reviewable.
 - Docker Desktop is unavailable because its inference manager rejects the Windows user path; portable Windows PHP 7.4.33 provides local unit/syntax evidence only.
 - The lifecycle target was a cloned disposable PBX, not a pristine ISO install; no authenticated UI or telephony call-flow was exercised.
 - Exact installed Issabel media and FreePBX-derived component versions remain unverified.
-- Incoming campaign URL2/URL3 creation has a separate recorded signature defect for the later campaign phase.
+- CC5-010 has local PHP 7.4 evidence only; no authenticated incoming-campaign UI workflow has passed yet, and PHP 5.4 compatibility is syntax-reviewed rather than runtime-tested.
+- The legacy incoming-campaign page still invokes a privileged lazy schema migrator; CC5-011 tracks its removal separately from the bounded URL contract repair.
 
 ## Exact next action
 
-Select the next focused subsystem design and continue on `origin/develop` under the owner-repository-only release policy.
+Deploy the reviewed CC5-010 commit to VM 127, then safely validate one synthetic incoming campaign create/read/edit/delete cycle without activating it or placing a call.
 
 ## Distribution policy
 
@@ -48,4 +53,5 @@ Select the next focused subsystem design and continue on `origin/develop` under 
 - Fork remote: `origin` → `https://github.com/JoshuaSayo/callcenter-issabel5.git`
 - Fetch-only reference: `upstream` → `https://github.com/ISSABELPBX/callcenter-issabel5.git`
 - Local push default: `origin`; the `upstream` push URL is disabled.
+- Latest owner-repository checkpoint: `a184a9c`
 - Latest staging source checkpoint: `29adf38`
