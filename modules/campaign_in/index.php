@@ -41,7 +41,6 @@ function _moduleContent(&$smarty, $module_name)
     include_once "modules/$module_name/configs/default.conf.php";
     global $arrConf;
 
-    checkDataBase();
     // Se fusiona la configuración del módulo con la configuración global
     // EN: Module configuration is merged with global configuration
     $arrConf = array_merge($arrConf, $arrConfModule);
