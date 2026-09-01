@@ -127,6 +127,15 @@ Each entry records environment, command or observation, result, and limitation. 
 - Integrated checks: the CC5-010 campaign regression, installer repair regression, canonical schema contract, relevant PHP lints, warning-enabled request test, and Git diff checks passed. A fresh read-only seam reviewer found no blocker.
 - Scope: PHP 7.4 executable source evidence. The outgoing module's independent migration copy and campaign monitoring's legacy config parser were not changed.
 
+### E-CC5-012-L1 — outgoing request owns no migration
+
+- Date: 2026-09-01 Asia/Manila. Runtime: standalone Windows PHP 7.4.33 at `.codex-state/runtime/php-7.4.33/php.exe`.
+- Executable boundary: the test first loads the real outgoing class and fails safely if the privileged helpers remain exported. After their removal, the identical command loads the real controller, executes `_moduleContent()`, lets ordinary database construction succeed, fails through a sentinel if the controller still calls the migrator, and otherwise stops at the real `getCampaigns()` query boundary before external database access.
+- Accepted RED: `php -d display_errors=1 -d error_reporting=-1 tests/campaign/test_outgoing_page_contract.php` exited `1` with `FAIL outgoing_page_contract: legacy page-load migration helpers remain exported`; production source was unchanged.
+- GREEN: the identical command exited `0` with `PASS outgoing_page_contract` after only the outgoing bootstrap call and its two privileged helpers were removed.
+- Integrated checks: incoming request regression, installer repair regression, canonical schema contract, three PHP lints, warning-enabled outgoing request test, forbidden-marker scan, Git diff checks, and fixture cleanup passed. Fresh read-only seam and source/authority reviewers found no blocker.
+- Scope: PHP 7.4 executable source evidence, not browser, live-database, or telephony behavior. Campaign monitoring's separate legacy configuration parser was not assessed.
+
 ## Staging
 
 ### E-P1-003 — unauthenticated reachability
@@ -171,6 +180,16 @@ Each entry records environment, command or observation, result, and limitation. 
 - Evidence correction: the install wrapper's outer SSH process returned `1` after writing its gated success record. It was not treated as standalone proof and the installer was not rerun. A fresh read-only postcheck exited `0`; a separate strict pinned-host verifier then exited `0` and returned `CONFIRMED` for the exact current state and artifact hashes.
 - Scope: installed-source request-bootstrap evidence, not an authenticated browser UI request or telephony call. HTTPS used loopback with certificate verification disabled. Outgoing and monitoring paths were not tested.
 
+### E-CC5-012-S1 — exact installed outgoing request-bootstrap validation
+
+- Date: 2026-09-01 Asia/Manila. Target: snapshot-backed VM 127 at `10.39.188.63`; exact clean owner clone `/usr/src/callcenter-issabel5-develop-8e50dbf` and installed outgoing files at `8e50dbff7d2e5b6a8f4f1abd355a71b96b355708`.
+- Native checks: PHP 7.4.33 outgoing/incoming request contracts and installer repair regression, canonical schema contract, three relevant lints, immutable source hashes, and commit diff checks passed before installation.
+- Install and execution: one normal `--local` installer run exited `0`. Installed outgoing controller/class hashes matched immutable hashes derived from the exact commit; the request-contract test executed against those installed files and returned `PASS outgoing_page_contract` at the ordinary query boundary without external database access.
+- Stable state: the complete `call_center` DDL/routine/trigger/event fingerprint remained `56a9513d0ad74f71a02360b16ba2d9286540eb6560caf390322595e4a21f85e6`; the aggregate fingerprint across seven MariaDB privilege tables remained `8e2992584e55e8d445e939f06faca94c894b7b586f29e15c78ccc8a8274789fa`; four URL2/URL3 columns and four foreign keys remained present. Routes, Call Center activity, and Asterisk channels remained `0`; dialer stayed active/enabled as `asterisk`; Asterisk 18.19.0 and HTTPS `200` remained healthy.
+- Protected evidence: directory mode `700`; result/log modes `600`; result SHA-256 `72db7628fd70ec8ca88db28f5153f790ff084ce7ba2c1366997dc7bf6dcf71ac`; installer-log SHA-256 `fb3edd990b27ae165b59ca095cc1d768379dba08ddf1fad2b1e573ea8a5211c8`. No credential value is retained in repository documentation.
+- Independent verifier: a separate pinned-host read-only command exited `0` and returned `CONFIRMED` for the exact source/installed/evidence hashes, absent outgoing migrator, complete fingerprints, zero-use state, and service health.
+- Scope: installed-source request-bootstrap evidence, not an authenticated browser UI request, live call, certificate-trust validation, or broad PBX regression. Campaign monitoring was not tested.
+
 ## Removal/Reinstallation
 
 ### E-P1-010 — authenticated staging removal and clean reinstallation
@@ -205,7 +224,7 @@ Infrastructure screenshots remain outside the public repository under `environme
 
 - Exact Issabel media build and FreePBX-derived component versions remain unverified.
 - This was an upgrade/repeat/removal/clean-database exercise on a cloned disposable PBX, not a pristine ISO installation.
-- No authenticated browser UI, agent, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed. CC5-010 has a rollback-isolated class/database staging cycle and CC5-011 has installed-source request-bootstrap evidence only; no external call was placed.
+- No authenticated browser UI, agent, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed. CC5-010 has a rollback-isolated class/database staging cycle; CC5-011 and CC5-012 have installed-source request-bootstrap evidence only; no external call was placed.
 - The compressed SQL backup has no `CREATE DATABASE` or `USE` statement and was integrity-checked but not restore-rehearsed. Explicit database creation/selection is required for manual import; the Proxmox snapshot is the primary full rollback.
 - HTTPS health used the local endpoint with certificate verification disabled; it proves application reachability, not certificate trust.
 - The local portable-PHP suite log timestamp predates the recorded `git update-index --chmod=+x` operation and is not used as post-fix proof; fresh Rocky Linux clones at `751a62f` and `29adf38` provide the decisive staging evidence for their respective scenarios.
