@@ -1,12 +1,22 @@
 <?php
 
 
-if (is_readable("/etc/amportal.conf")) {
-    $amp_conf 	= amportal_conf("/etc/amportal.conf");
-    $DBHOST     = $amp_conf['AMPDBHOST'];
-    $DBNAME     = "call_center";
-    $DBUSER     = $amp_conf['AMPDBNAME'];
-    $DBPASS     = $amp_conf['AMPDBNAME'];
+include_once dirname(__DIR__).'/configs/default.conf.php';
+$databaseConfig = parse_url($arrConfModule['cadena_dsn']);
+if (!is_array($databaseConfig) ||
+    !isset($databaseConfig['host']) ||
+    !isset($databaseConfig['user']) ||
+    !isset($databaseConfig['pass']) ||
+    !isset($databaseConfig['path']) ||
+    $databaseConfig['path'] === '/') {
+    http_response_code(500);
+    die("Invalid campaign monitoring database configuration");
+}
+
+$DBHOST = $databaseConfig['host'];
+$DBNAME = ltrim($databaseConfig['path'], '/');
+$DBUSER = $databaseConfig['user'];
+$DBPASS = $databaseConfig['pass'];
 
 
 $conn = new mysqli($DBHOST, $DBUSER, $DBPASS, $DBNAME);
@@ -137,32 +147,3 @@ if ($conn->connect_error) {
         echo json_encode($data);
 
     }
-
-}
-
-
-
-function amportal_conf($filename) {
-
-    $file = file($filename);
-    if (is_array($file)) {
-        foreach ($file as $line) {
-            if (preg_match("/^\s*([^=]*)\s*=\s*[\"']?([\w\/\:\.\,\}\{\>\<\(\)\*\?\%!=\+\#@&\\$-]*)[\"']?\s*([;].*)?/",$line,$matches)) {
-                if(preg_match('/\$amp_conf/',$matches[1])) {
-                    $matches[1] = preg_replace('/\$amp_conf\[\'/','',$matches[1]);
-                    $matches[1] = preg_replace('/\$amp_conf\["/','',$matches[1]);
-                    $matches[1] = trim($matches[1]);
-                    $matches[1] = substr($matches[1],0,-2);
-                }
-                $matches[1] = trim($matches[1]);
-                $conf[ $matches[1] ] = trim($matches[2]);
-            }
-        }
-    } else {
-        die("<h1>".sprintf("Missing or unreadable config file (%s)...cannot continue", $filename)."</h1>");
-    }
-    return $conf;
-}
-
-
-?>
