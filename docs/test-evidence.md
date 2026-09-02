@@ -136,6 +136,16 @@ Each entry records environment, command or observation, result, and limitation. 
 - Integrated checks: incoming request regression, installer repair regression, canonical schema contract, three PHP lints, warning-enabled outgoing request test, forbidden-marker scan, Git diff checks, and fixture cleanup passed. Fresh read-only seam and source/authority reviewers found no blocker.
 - Scope: PHP 7.4 executable source evidence, not browser, live-database, or telephony behavior. Campaign monitoring's separate legacy configuration parser was not assessed.
 
+### E-CC5-013-L1 — campaign monitoring uses the module DSN
+
+- Date: 2026-09-01 Asia/Manila. Runtime: standalone Windows PHP 7.4.33 at `.codex-state/runtime/php-7.4.33/php.exe` with `-n` so the test can replace only the external `mysqli` boundary.
+- Reachability and cause: the shipped JavaScript calls the standalone endpoint for incoming and outgoing monitoring. A secret-safe pre-change staging check reached it with a parameter-free HTTP `200`/zero-byte response and confirmed that the legacy user/password mapping differed from Issabel's configured values, although the separate Call Center credentials made that mapping succeed coincidentally.
+- Executable boundary: the behavioral test copies the current endpoint bytes into a mirrored temporary module layout, supplies a distinct synthetic module DSN, confines filesystem access so `/etc` is unavailable, and records the exact host/user/password/database arguments passed to `mysqli`.
+- Accepted RED: `php -n -d display_errors=1 -d error_reporting=-1 tests/campaign/test_monitoring_api_config.php` exited `1` with `FAIL monitoring_api_config: API did not initialize mysqli from the module DSN`; production source was unchanged. An earlier test-double setup failure was rejected and is not RED evidence.
+- GREEN: the identical command exited `0` with `PASS monitoring_api_config` after the endpoint began reading `configs/default.conf.php` and removed its `/etc/amportal.conf` parser. Query, JSON, and queue behavior were not intentionally changed.
+- Integrated checks: incoming/outgoing page contracts, incoming campaign behavior, installer library, clean-install schema contract, relevant PHP 7.4 lints, forbidden-marker scan, fixture cleanup, and Git diff checks passed. Fresh seam, specification, standards, and integrated-contract reviews ended ready with no functional blocker.
+- Scope: executable configuration-boundary evidence, not an authenticated browser, telephony, or queue-command test. The separate request-to-shell queue boundary is CC5-014; no queue parameter or malicious live input was exercised.
+
 ## Staging
 
 ### E-P1-003 — unauthenticated reachability
@@ -190,6 +200,17 @@ Each entry records environment, command or observation, result, and limitation. 
 - Independent verifier: a separate pinned-host read-only command exited `0` and returned `CONFIRMED` for the exact source/installed/evidence hashes, absent outgoing migrator, complete fingerprints, zero-use state, and service health.
 - Scope: installed-source request-bootstrap evidence, not an authenticated browser UI request, live call, certificate-trust validation, or broad PBX regression. Campaign monitoring was not tested.
 
+### E-CC5-013-S1 — exact installed campaign-monitoring configuration validation
+
+- Date: 2026-09-01 Asia/Manila. Target: snapshot-backed VM 127 at `10.39.188.63`; exact clean owner clone `/usr/src/callcenter-issabel5-develop-1ae2948` and installed monitoring endpoint at `1ae29481323cfb57db9fb298ef6cce8490ab1596`.
+- Native checks: PHP 7.4.33 monitoring/incoming/outgoing request contracts, incoming campaign and installer-library regressions, canonical schema contract, relevant lints, immutable source hashes, forbidden-marker scan, and commit diff checks passed before installation.
+- Install and execution: one normal `--local` installer run exited `0`. The installed endpoint/config hashes matched the exact commit; legacy configuration markers were absent; module DSN markers were present; the behavioral test executed against the installed endpoint/config copy and returned `PASS monitoring_api_config` without external database access.
+- Safe live behavior: parameter-free loopback requests returned HTTP `200` with `0` bytes before and after installation. This exercised the real configured database connection without sending campaign or queue data.
+- Stable state: complete `call_center` schema fingerprint remained `56a9513d0ad74f71a02360b16ba2d9286540eb6560caf390322595e4a21f85e6`; aggregate seven-table privilege fingerprint remained `8e2992584e55e8d445e939f06faca94c894b7b586f29e15c78ccc8a8274789fa`; routes, Call Center activity, and Asterisk channels remained `0`; dialer stayed active/enabled as `asterisk`; Asterisk 18.19.0 and HTTPS `200` remained healthy.
+- Protected evidence: directory/result/log modes `700/600/600`; result SHA-256 `a758c89d224b5d68e290dacc82288a8a7d86ae3b843519e28a57ba2182bfdc31`; installer-log SHA-256 `fb3edd990b27ae165b59ca095cc1d768379dba08ddf1fad2b1e573ea8a5211c8`. No credential value is retained in repository documentation.
+- Independent verifier: a separate pinned-host read-only command exited `0` and returned `CONFIRMED` after recomputing exact clean source/installed/evidence hashes, absent legacy markers, present module-DSN markers, complete database/privilege fingerprints, zero-use state, service health, and one parameter-free HTTP `200`/zero-byte endpoint response.
+- Scope: installed configuration bootstrap and parameter-free endpoint evidence, not authenticated browser UI, call flow, certificate-trust validation, or queue-command behavior. The verifier intentionally did not create a temporary fixture; it matched the test source hash and the protected installed-probe record.
+
 ## Removal/Reinstallation
 
 ### E-P1-010 — authenticated staging removal and clean reinstallation
@@ -224,8 +245,9 @@ Infrastructure screenshots remain outside the public repository under `environme
 
 - Exact Issabel media build and FreePBX-derived component versions remain unverified.
 - This was an upgrade/repeat/removal/clean-database exercise on a cloned disposable PBX, not a pristine ISO installation.
-- No authenticated browser UI, agent, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed. CC5-010 has a rollback-isolated class/database staging cycle; CC5-011 and CC5-012 have installed-source request-bootstrap evidence only; no external call was placed.
+- No authenticated browser UI, agent, inbound/outbound call-flow, recording, retry/callback, or report workflow has passed. CC5-010 has a rollback-isolated class/database staging cycle; CC5-011 through CC5-013 have installed-source/request-bootstrap evidence only; no external call was placed.
 - The compressed SQL backup has no `CREATE DATABASE` or `USE` statement and was integrity-checked but not restore-rehearsed. Explicit database creation/selection is required for manual import; the Proxmox snapshot is the primary full rollback.
 - HTTPS health used the local endpoint with certificate verification disabled; it proves application reachability, not certificate trust.
 - The local portable-PHP suite log timestamp predates the recorded `git update-index --chmod=+x` operation and is not used as post-fix proof; fresh Rocky Linux clones at `751a62f` and `29adf38` provide the decisive staging evidence for their respective scenarios.
 - No external call will be used as Phase 1 evidence.
+- CC5-013 sent no campaign or queue parameter. Static inspection found request data interpolated into a shell command in the monitoring endpoint; CC5-014 remains open and no malicious live input was executed.

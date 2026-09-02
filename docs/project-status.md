@@ -2,11 +2,11 @@
 
 ## Current phase
 
-Phase 1 complete; CC5-012 outgoing page-migration removal staging verified.
+Phase 1 complete; CC5-013 campaign-monitoring configuration boundary staging verified.
 
 ## Active work
 
-- No new implementation issue has started. The next bounded investigation is the campaign-monitoring legacy configuration parser; it must be traced before any change.
+- No new implementation issue has started. The next bounded investigation is CC5-014, the campaign-monitoring endpoint's request authorization and queue command boundary.
 
 ## Completed
 
@@ -28,7 +28,8 @@ Phase 1 complete; CC5-012 outgoing page-migration removal staging verified.
 - CC5-010 completed in `e2e2ba3`: incoming create/update preserve and validate URL1/URL2/URL3, raw form values are not lossy-cast before validation, and update no longer emits debug SQL. Local TDD, native staging PHP 7.4 tests, a rollback-isolated class/database cycle, and independent verification passed in E-CC5-010-S1.
 - CC5-011 completed in `2d291bb`: the incoming request path no longer calls or exports its lazy schema/privilege migrator. Executable local RED/GREEN, native staging tests, exact installed-file matching, an installed-source bootstrap check, stable schema/grant fingerprints, and independent verification passed in E-CC5-011-S1.
 - CC5-012 completed in `8e50dbf`: the outgoing request path no longer calls or exports its independent lazy schema/privilege migrator. Executable local RED/GREEN, native staging tests, immutable source/installed-file matching, an installed-source bootstrap check, complete schema/privilege-table fingerprints, and independent verification passed in E-CC5-012-S1.
-- Final staging state: Call Center installed; `issabeldialer` enabled/active as `asterisk`; 24 tables with all four URL2/URL3 fields/FKs; `llamada_agendada` loaded; Asterisk 18.19.0; HTTPS `200`; zero routes/calls.
+- CC5-013 completed in `1ae2948`: the directly requested campaign-monitoring endpoint now uses the module's existing database DSN instead of reading and mis-mapping `/etc/amportal.conf`. Executable local RED/GREEN, exact source/installed hashes, an installed-source behavioral probe, a parameter-free live endpoint check, stable database/privilege fingerprints, and independent verification passed in E-CC5-013-S1.
+- Final staging state: Call Center installed; campaign monitoring uses the module DSN; `issabeldialer` enabled/active as `asterisk`; 24 tables with all four URL2/URL3 fields/FKs; `llamada_agendada` loaded; Asterisk 18.19.0; HTTPS `200`; zero routes/calls.
 
 ## Known limitations
 
@@ -37,11 +38,11 @@ Phase 1 complete; CC5-012 outgoing page-migration removal staging verified.
 - The lifecycle target was a cloned disposable PBX, not a pristine ISO install; no authenticated UI or telephony call-flow was exercised.
 - Exact installed Issabel media and FreePBX-derived component versions remain unverified.
 - CC5-010 has class/database staging evidence but no authenticated browser UI workflow; PHP 5.4 compatibility is syntax-reviewed rather than runtime-tested.
-- Campaign monitoring retains a separate legacy configuration parser that was not assessed by CC5-011 or CC5-012.
+- CC5-013 did not exercise an authenticated browser workflow or any campaign/queue parameter. The endpoint still interpolates its `queue` request value into a shell command; CC5-014 records that separate high-priority boundary, and no malicious live input was sent.
 
 ## Exact next action
 
-Trace the campaign-monitoring configuration parser to determine whether it is reachable from a request path and whether it performs privileged or duplicate configuration work; do not change it until that behavior is executable and bounded.
+Trace CC5-014's authorization, client, and queue-command contract locally; reproduce it without malicious staging input, then require authorization and strict queue allowlisting while replacing shell-string construction with a non-shell Asterisk/AMI lookup before any live parameterized probe.
 
 ## Distribution policy
 
@@ -55,5 +56,5 @@ Trace the campaign-monitoring configuration parser to determine whether it is re
 - Fork remote: `origin` → `https://github.com/JoshuaSayo/callcenter-issabel5.git`
 - Fetch-only reference: `upstream` → `https://github.com/ISSABELPBX/callcenter-issabel5.git`
 - Local push default: `origin`; the `upstream` push URL is disabled.
-- Latest owner-repository checkpoint: `8e50dbf`
-- Latest staging source checkpoint: `8e50dbf`
+- Latest owner-repository checkpoint: `1ae2948`
+- Latest staging source checkpoint: `1ae2948`
