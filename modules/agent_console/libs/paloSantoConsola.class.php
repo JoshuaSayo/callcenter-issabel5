@@ -596,6 +596,7 @@ class PaloSantoConsola
     {
         $estado = array(
             'status'            =>  (string)$connStatus->status,
+            'queue_status'      =>  isset($connStatus->queue_status) ? (int)$connStatus->queue_status : NULL,
             'channel'           =>  isset($connStatus->channel) ? (string)$connStatus->channel : NULL,
             'extension'         =>  isset($connStatus->extension) ? (string)$connStatus->extension : NULL,
             'onhold'            =>  isset($connStatus->onhold) ? ($connStatus->onhold == 1) : FALSE,
@@ -1429,6 +1430,50 @@ class PaloSantoConsola
             $this->errMsg = '(internal) '.__METHOD__.': '.$e->getMessage();
             return NULL;
         }
+    }
+
+    function leerUltimasLlamadasAgentes($campaignType, $campaignId)
+    {
+        $this->errMsg = '';
+        if (!in_array($campaignType, array('incoming', 'outgoing'), TRUE) ||
+            !is_int($campaignId) || $campaignId <= 0) {
+            $this->errMsg = '(internal) Invalid campaign identity';
+            return NULL;
+        }
+
+        // Elegir una consulta fija por tipo; sólo el ID de campaña se enlaza
+        // como dato. Ningún valor de solicitud elige una tabla o columna.
+        // Select a fixed query by type; only the campaign ID is bound as data.
+        // No request value selects a table or column.
+        if ($campaignType == 'incoming') {
+            $sql = <<<LAST_CALLS_INCOMING
+SELECT CONCAT(a.type, '/', a.number) AS agent,
+    MAX(ce.datetime_end) AS lastCall,
+    ce.id_campaign
+FROM call_entry ce
+JOIN agent a ON ce.id_agent = a.id
+WHERE ce.id_campaign = ?
+GROUP BY ce.id_agent, a.type, a.number, ce.id_campaign
+LAST_CALLS_INCOMING;
+        } else {
+            $sql = <<<LAST_CALLS_OUTGOING
+SELECT CONCAT(a.type, '/', a.number) AS agent,
+    MAX(c.end_time) AS lastCall,
+    c.id_campaign
+FROM calls c
+JOIN agent a ON c.id_agent = a.id
+WHERE c.id_campaign = ?
+GROUP BY c.id_agent, a.type, a.number, c.id_campaign
+LAST_CALLS_OUTGOING;
+        }
+
+        $oDB = $this->_obtenerConexion('call_center');
+        $rows = $oDB->fetchTable($sql, TRUE, array($campaignId));
+        if (!is_array($rows)) {
+            $this->errMsg = '(internal) Unable to read agent last calls - '.$oDB->errMsg;
+            return NULL;
+        }
+        return $rows;
     }
 
     function leerEstadoCampania($sCallType, $iCampaignId, $datetime_start = NULL)

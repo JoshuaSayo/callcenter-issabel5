@@ -58,6 +58,9 @@ function _moduleContent(&$smarty, $module_name)
     case 'getCampaignDetail':
         $sContenido = manejarMonitoreo_getCampaignDetail($module_name, $smarty, $local_templates_dir);
         break;
+    case 'getAgentLastCalls':
+        $sContenido = manejarMonitoreo_getAgentLastCalls($module_name, $smarty, $local_templates_dir);
+        break;
     case 'checkStatus':
         $sContenido = manejarMonitoreo_checkStatus($module_name, $smarty, $local_templates_dir);
         break;
@@ -274,6 +277,61 @@ function manejarMonitoreo_getCampaignDetail($module_name, $smarty, $sDirLocalPla
         );
 
         $respuesta['estadoClienteHash'] = generarEstadoHash($module_name, $estadoCliente);
+    }
+
+    $json = new Services_JSON();
+    Header('Content-Type: application/json');
+    return $json->encode($respuesta);
+}
+
+function manejarMonitoreo_getAgentLastCalls($module_name, $smarty, $sDirLocalPlantillas)
+{
+    $respuesta = array(
+        'status' => 'error',
+        'message' => _tr('Invalid request'),
+    );
+
+    // Verificar también la sesión en el límite de la acción. El despachador
+    // principal conserva la autorización de acceso al módulo.
+    // Also verify the session at the action boundary. The main dispatcher
+    // retains authorization for module access.
+    if (!isset($_SESSION['issabel_user']) ||
+        !is_string($_SESSION['issabel_user']) ||
+        trim($_SESSION['issabel_user']) === '') {
+        $respuesta['statusResponse'] = 'ERROR_SESSION';
+        $respuesta['error'] = _tr('Session expired');
+    } else {
+        $campaignType = getParameter('campaigntype');
+        $campaignId = getParameter('campaignid');
+        $legacyQueue = getParameter('queue');
+
+        if (!is_string($campaignType) ||
+            !in_array($campaignType, array('incoming', 'outgoing'), TRUE)) {
+            $respuesta['message'] = _tr('Invalid campaign type');
+        } elseif (!is_string($campaignId) ||
+            !preg_match('/^[1-9][0-9]*$/D', $campaignId) ||
+            (string)(int)$campaignId !== $campaignId) {
+            $respuesta['message'] = _tr('Invalid campaign ID');
+        } elseif (!is_null($legacyQueue)) {
+            // La cola se obtiene de los datos de campaña del servidor; nunca
+            // se acepta una segunda autoridad controlada por la solicitud.
+            // The queue comes from server-owned campaign data; never accept a
+            // second request-controlled authority.
+            $respuesta['message'] = _tr('Invalid request');
+        } else {
+            $oPaloConsola = new PaloSantoConsola();
+            $listaLastCall = $oPaloConsola->leerUltimasLlamadasAgentes(
+                $campaignType,
+                (int)$campaignId
+            );
+            if (is_array($listaLastCall)) {
+                $respuesta['status'] = 'success';
+                $respuesta['message'] = '(no message)';
+                $respuesta['listaLastCall'] = $listaLastCall;
+            } else {
+                $respuesta['message'] = _tr('Unable to read campaign information');
+            }
+        }
     }
 
     $json = new Services_JSON();
@@ -802,7 +860,10 @@ function formatoLlamadaNoConectada($activecall)
 
 function formatoAgente($agent)
 {
-    $sEtiquetaStatus = _tr($agent['status']);
+    $sEtiquetaStatus = $agent['status'] === 'online' &&
+        isset($agent['queue_status']) && $agent['queue_status'] === 5
+        ? 'Phone Off'
+        : _tr($agent['status']);
     $sFechaHoy = date('Y-m-d');
     $sDesde = '-';
     switch ($agent['status']) {

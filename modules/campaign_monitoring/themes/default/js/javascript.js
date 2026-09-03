@@ -382,14 +382,11 @@ $(document).ready(function() {
 				// Logica para mantener las horas de las ultimas llamadas contestadas de los agentes
 				if (count === 0){
 					var agentesLastCall = this.agentes;
-					var queue = this.content.cola;
 					if (paramsType === "outgoing") {
-						//console.log("queue_id", params.id_campaign);
-						lastCallOutgoing(idCampaign, respuesta.agents, agentesLastCall, queue);
+						lastCallOutgoing(idCampaign, respuesta.agents, agentesLastCall);
 					}
 					if (paramsType === "incoming") {
-						//console.log("queue_id", params.id_campaign);
-						lastCallIncoming(idCampaign, respuesta.agents, agentesLastCall, queue);
+						lastCallIncoming(idCampaign, respuesta.agents, agentesLastCall);
 					}
 					count++;
 				}
@@ -634,6 +631,7 @@ setTimeout(() => {
         color = 'yellow';
         break;
       case 'Unavailable':
+      case 'Phone Off':
       case 'Logged out':
       case 'No logon':
       case 'Déconnecté':
@@ -682,6 +680,7 @@ function agentUpdateColor(status, canal) {
         color = 'yellow';
         statusImage = '<img src="/modules/' + module_name + '/images/agent-busy.png" alt="Ocupado" style="padding-right:1px;"/>';
         break;
+      case 'Phone Off':
       case 'Logged out':
       case 'No logon':
       case 'Déconnecté':
@@ -704,79 +703,48 @@ for (let i = 0; i < elements.length; i++) {
   return { statusImage};
 }
 
-function lastCallIncoming(id_campaign, respuesta, agentes, queue) {
-    fetch('/modules/' + module_name + '/libs/api.php?id_campaignIncoming=' + id_campaign + '&queue=' + queue)
-        .then(response => response.json())
-        .then(data => {
-        	//console.log(data);
-           var listaLastCall = data.listaLastCall;
-           var unavailables = data.unavailables;
-            for (var i = 0; i < respuesta.add.length; i++) {
-                var agente = respuesta.add[i];
-                var agenteLista = agentes.findBy('canal', agente.agent);
-                var lastCallTime = listaLastCall.find(item => item.agent === agente.agent);
-                var unavailableAgent = unavailables.find(item => item.agent === agente.agent);
-                //console.log(lastCallTime);
-                //console.log(agenteLista);
-                var properties = {
-			        'reciente': true
-			    };
-			    if (agenteLista != null) {
-			        if (lastCallTime != null) {
-			            properties.desde = lastCallTime.lastCall;
-			            if (unavailableAgent) {
-			                agentColor('Unavailable', agente.agent);
-			                properties.estado = "Phone Off";
-			            }
-			        } else {
-			            properties.desde = "No calls";
-			            if (unavailableAgent) {
-			                agentColor('Unavailable', agente.agent);
-			                properties.estado = "Phone Off";
-			            }
-			        }
-			        agenteLista.setProperties(properties);
-			    }
-            }
-        })
-        .catch(error => console.error('Error in fetch:', error));
+function lastCallIncoming(id_campaign, respuesta, agentes) {
+    return loadAgentLastCalls('incoming', id_campaign, respuesta, agentes);
 }
 
-function lastCallOutgoing(id_campaign, respuesta, agentes, queue){
-	console.log(respuesta);
-	fetch('/modules/' + module_name + '/libs/api.php?id_campaignOutgoing=' + id_campaign + '&queue=' + queue)
-        .then(response => response.json())
-        .then(data => {
-        	//console.log(data);
-           var listaLastCall = data.listaLastCall;
-           var unavailables = data.unavailables;
-            for (var i = 0; i < respuesta.add.length; i++) {
-                var agente = respuesta.add[i];
-                var agenteLista = agentes.findBy('canal', agente.agent);
-                var lastCallTime = listaLastCall.find(item => item.agent === agente.agent);
-                var unavailableAgent = unavailables.find(item => item.agent === agente.agent);
-                //console.log(lastCallTime);
-                //console.log(agenteLista);
-                var properties = {
-			        'reciente': true
-			    };
-			    if (agenteLista != null) {
-			        if (lastCallTime != null) {
-			            properties.desde = lastCallTime.lastCall;
-			            if (unavailableAgent) {
-			                agentColor('Unavailable', agente.agent);
-			                properties.estado = "Phone Off";
-			            }
-			        } else {
-			            properties.desde = "No calls";
-			            if (unavailableAgent) {
-			                agentColor('Unavailable', agente.agent);
-			                properties.estado = "Phone Off";
-			            }
-			        }
-			        agenteLista.setProperties(properties);
-			    }
+function lastCallOutgoing(id_campaign, respuesta, agentes) {
+    return loadAgentLastCalls('outgoing', id_campaign, respuesta, agentes);
+}
+
+function loadAgentLastCalls(campaignType, idCampaign, respuesta, agentes) {
+    return $.get('index.php', {
+        menu: module_name,
+        rawmode: 'yes',
+        action: 'getAgentLastCalls',
+        campaigntype: campaignType,
+        campaignid: idCampaign
+    }, null, 'json').then(function(data) {
+        verificar_error_session(data);
+        if (data.status == 'error') {
+            mostrar_mensaje_error(data.message);
+            return;
+        }
+
+        var listaLastCall = data.listaLastCall || [];
+        for (var i = 0; i < respuesta.add.length; i++) {
+            var agente = respuesta.add[i];
+            var agenteLista = agentes.findBy('canal', agente.agent);
+            var lastCallTime = null;
+            for (var j = 0; j < listaLastCall.length; j++) {
+                if (listaLastCall[j].agent === agente.agent) {
+                    lastCallTime = listaLastCall[j];
+                    break;
+                }
             }
-        })
-        .catch(error => console.error('Error in fetch:', error));
+            var properties = {
+                'reciente': true,
+                'desde': lastCallTime != null ? lastCallTime.lastCall : 'No calls'
+            };
+            if (agenteLista != null) {
+                agenteLista.setProperties(properties);
+            }
+        }
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error in last-call request:', textStatus, errorThrown);
+    });
 }

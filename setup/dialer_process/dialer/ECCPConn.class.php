@@ -2602,6 +2602,13 @@ class ECCPConn
         }
         if (!is_null($sAgentStatus)) {
             $xml_agent->addChild('status', $sAgentStatus);
+            if (isset($infoAgente['queue_status'])) {
+                // Conservar el estado AMI como dato estructurado sin cambiar
+                // el contrato histórico de estado del agente.
+                // Preserve AMI state as structured data without changing the
+                // historical agent-status contract.
+                $xml_agent->addChild('queue_status', (int)$infoAgente['queue_status']);
+            }
             if (!is_null($sCanalExt)) $xml_agent->addChild('channel', str_replace('&', '&amp;', $sCanalExt));
             if (!is_null($sExtension)) $xml_agent->addChild('extension', $sExtension);
         }

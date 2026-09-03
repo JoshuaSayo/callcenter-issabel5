@@ -1,11 +1,9 @@
 <?php
 
-// Defecto de producción: la API de monitoreo solicitada directamente ignora
-// el DSN de base de datos del módulo y depende de su propio analizador de
-// /etc/amportal.conf, creando una segunda autoridad de configuración.
-// Production defect: the directly requested monitoring API ignores the
-// module database DSN and depends on its own /etc/amportal.conf parser,
-// creating a second configuration authority.
+// Contrato de regresión: la ruta autenticada de monitoreo usa el DSN del
+// módulo como única autoridad de configuración para call_center.
+// Regression contract: authenticated monitoring uses the module DSN as the
+// sole call_center configuration authority.
 
 function failMonitoringApiConfig($message)
 {
@@ -13,7 +11,7 @@ function failMonitoringApiConfig($message)
     exit(1);
 }
 
-function cleanupMonitoringApiFixture()
+function cleanupMonitoringApiConfigFixture()
 {
     global $fixtureRoot;
 
@@ -34,19 +32,38 @@ function cleanupMonitoringApiFixture()
 
 $repoRoot = dirname(dirname(__DIR__));
 $fixtureRoot = sys_get_temp_dir().DIRECTORY_SEPARATOR.'cc5013-'.getmypid().'-'.uniqid();
-register_shutdown_function('cleanupMonitoringApiFixture');
+register_shutdown_function('cleanupMonitoringApiConfigFixture');
 
 $fixtureFiles = array(
-    'modules/campaign_monitoring/libs/api.php' =>
-        file_get_contents($repoRoot.'/modules/campaign_monitoring/libs/api.php'),
     'modules/campaign_monitoring/configs/default.conf.php' =>
-        "<?php\n\$arrConfModule = array('cadena_dsn' => " .
+        "<?php\n\$arrConfModule = array('cadena_dsn' => ".
         "'mysql://cc_fixture_user:cc_fixture_pass@db.fixture.invalid/fixture_call_center');\n",
-);
-foreach ($fixtureFiles as $relativePath => $source) {
-    if ($source === FALSE) {
-        failMonitoringApiConfig("unable to read fixture source $relativePath");
+    'libs/paloSantoDB.class.php' => <<<'DATABASE_FIXTURE'
+<?php
+class paloDB
+{
+    public static $constructorArguments = array();
+    public static $queries = array();
+    public $connStatus = FALSE;
+    public $errMsg = '';
+
+    public function __construct($dsn)
+    {
+        self::$constructorArguments[] = $dsn;
     }
+
+    public function fetchTable($sql, $returnAssociative = FALSE, $params = NULL)
+    {
+        self::$queries[] = array($sql, $returnAssociative, $params);
+        return array();
+    }
+}
+DATABASE_FIXTURE
+    ,
+    'ECCP.class.php' => "<?php\n",
+);
+
+foreach ($fixtureFiles as $relativePath => $source) {
     $path = $fixtureRoot.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
     $directory = dirname($path);
     if (!is_dir($directory) && !mkdir($directory, 0700, TRUE)) {
@@ -57,20 +74,10 @@ foreach ($fixtureFiles as $relativePath => $source) {
     }
 }
 
-if (!class_exists('mysqli', FALSE)) {
-    class mysqli
-    {
-        public static $constructorArguments = array();
-        public $connect_error = FALSE;
-
-        public function __construct($host, $user, $password, $database)
-        {
-            self::$constructorArguments[] = array($host, $user, $password, $database);
-        }
-    }
-} else {
-    failMonitoringApiConfig('mysqli is loaded; run this boundary test with php -n');
-}
+$arrConf = array();
+$arrConfModule = array();
+require $fixtureRoot.'/modules/campaign_monitoring/configs/default.conf.php';
+$arrConf = array_merge($arrConf, $arrConfModule);
 
 $warnings = array();
 set_error_handler(function ($severity, $message) use (&$warnings) {
@@ -78,37 +85,29 @@ set_error_handler(function ($severity, $message) use (&$warnings) {
     return TRUE;
 });
 
-$_GET = array();
-$previousOpenBasedir = ini_set('open_basedir', $fixtureRoot);
-if ($previousOpenBasedir === FALSE) {
-    failMonitoringApiConfig('unable to confine the endpoint fixture');
-}
-if (!is_readable($fixtureRoot.'/modules/campaign_monitoring/configs/default.conf.php')) {
-    failMonitoringApiConfig('module DSN fixture is unreadable after confinement');
-}
-ob_start();
-require $fixtureRoot.'/modules/campaign_monitoring/libs/api.php';
-$responseOutput = ob_get_clean();
+$previousDirectory = getcwd();
+chdir($fixtureRoot);
+set_include_path($fixtureRoot.PATH_SEPARATOR.get_include_path());
+require_once $repoRoot.'/modules/agent_console/libs/paloSantoConsola.class.php';
+chdir($previousDirectory);
+
+$console = new PaloSantoConsola();
+$result = $console->leerUltimasLlamadasAgentes('incoming', 41);
 restore_error_handler();
 
-$expectedArguments = array(
-    'db.fixture.invalid',
-    'cc_fixture_user',
-    'cc_fixture_pass',
-    'fixture_call_center',
-);
-if (mysqli::$constructorArguments !== array($expectedArguments)) {
+$expectedDSN = 'mysql://cc_fixture_user:cc_fixture_pass@db.fixture.invalid/fixture_call_center';
+if (paloDB::$constructorArguments !== array($expectedDSN)) {
     failMonitoringApiConfig(
-        'API did not initialize mysqli from the module DSN expected='.
-        var_export(array($expectedArguments), TRUE).' actual='.
-        var_export(mysqli::$constructorArguments, TRUE)
+        'authenticated data service did not use the module DSN expected='.
+        var_export(array($expectedDSN), TRUE).' actual='.
+        var_export(paloDB::$constructorArguments, TRUE)
     );
 }
-if ($responseOutput !== '') {
-    failMonitoringApiConfig('empty monitoring bootstrap emitted response output');
+if ($result !== array() || count(paloDB::$queries) !== 1) {
+    failMonitoringApiConfig('module DSN connection did not execute the last-call query');
 }
 if ($warnings !== array()) {
-    failMonitoringApiConfig('canonical module DSN bootstrap emitted a warning');
+    failMonitoringApiConfig('canonical module DSN path emitted a warning: '.implode('; ', $warnings));
 }
 
 echo "PASS monitoring_api_config\n";
