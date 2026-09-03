@@ -2,11 +2,11 @@
 
 ## Current phase
 
-Phase 1 complete; CC5-013 campaign-monitoring configuration boundary staging verified.
+Phase 1 complete; CC5-014 campaign-monitoring boundary independently staging verified.
 
 ## Active work
 
-- No new implementation issue has started. The next bounded investigation is CC5-014, the campaign-monitoring endpoint's request authorization and queue command boundary.
+- CC5-014 implementation `41c5217` is installed and independently verified on staging. The next bounded validation is an authenticated monitoring UI smoke test; it has not started.
 
 ## Completed
 
@@ -29,7 +29,8 @@ Phase 1 complete; CC5-013 campaign-monitoring configuration boundary staging ver
 - CC5-011 completed in `2d291bb`: the incoming request path no longer calls or exports its lazy schema/privilege migrator. Executable local RED/GREEN, native staging tests, exact installed-file matching, an installed-source bootstrap check, stable schema/grant fingerprints, and independent verification passed in E-CC5-011-S1.
 - CC5-012 completed in `8e50dbf`: the outgoing request path no longer calls or exports its independent lazy schema/privilege migrator. Executable local RED/GREEN, native staging tests, immutable source/installed-file matching, an installed-source bootstrap check, complete schema/privilege-table fingerprints, and independent verification passed in E-CC5-012-S1.
 - CC5-013 completed in `1ae2948`: the directly requested campaign-monitoring endpoint now uses the module's existing database DSN instead of reading and mis-mapping `/etc/amportal.conf`. Executable local RED/GREEN, exact source/installed hashes, an installed-source behavioral probe, a parameter-free live endpoint check, stable database/privilege fingerprints, and independent verification passed in E-CC5-013-S1.
-- Final staging state: Call Center installed; campaign monitoring uses the module DSN; `issabeldialer` enabled/active as `asterisk`; 24 tables with all four URL2/URL3 fields/FKs; `llamada_agendada` loaded; Asterisk 18.19.0; HTTPS `200`; zero routes/calls.
+- CC5-014 implementation `41c5217` retires the direct monitoring endpoint with HTTP `410`, moves last-call requests behind the existing authorized module dispatcher, validates campaign type/ID without lossy conversion, and obtains unavailable-agent state through existing AMI/ECCP data instead of a shell command. Local regression, native installed-source checks and independent staging verification passed in E-CC5-014-S1.
+- Latest deployment checks: Call Center installed; direct monitoring endpoint returns exact HTTP `410` JSON; `issabeldialer` enabled/active as `asterisk`; schema and privilege fingerprints unchanged; Asterisk 18.19.0; HTTPS `200`; zero routes, active campaigns, and channels.
 
 ## Known limitations
 
@@ -38,11 +39,11 @@ Phase 1 complete; CC5-013 campaign-monitoring configuration boundary staging ver
 - The lifecycle target was a cloned disposable PBX, not a pristine ISO install; no authenticated UI or telephony call-flow was exercised.
 - Exact installed Issabel media and FreePBX-derived component versions remain unverified.
 - CC5-010 has class/database staging evidence but no authenticated browser UI workflow; PHP 5.4 compatibility is syntax-reviewed rather than runtime-tested.
-- CC5-013 did not exercise an authenticated browser workflow or any campaign/queue parameter. The endpoint still interpolates its `queue` request value into a shell command; CC5-014 records that separate high-priority boundary, and no malicious live input was sent.
+- CC5-014 has local authorization/data/AMI fixtures, installed-source checks, and a parameter-free retired-endpoint check. Authenticated monitoring UI, live AMI unavailable-agent behavior, and call flow remain unverified. No malicious live input or campaign/queue parameter was sent.
 
 ## Exact next action
 
-Trace CC5-014's authorization, client, and queue-command contract locally; reproduce it without malicious staging input, then require authorization and strict queue allowlisting while replacing shell-string construction with a non-shell Asterisk/AMI lookup before any live parameterized probe.
+Agree a bounded authenticated monitoring UI smoke test using ordinary test data. Do not rerun either targeted deployment or the CC5-013 full installer; live parameterized tests and calls are outside the completed checks.
 
 ## Distribution policy
 
@@ -56,5 +57,5 @@ Trace CC5-014's authorization, client, and queue-command contract locally; repro
 - Fork remote: `origin` → `https://github.com/JoshuaSayo/callcenter-issabel5.git`
 - Fetch-only reference: `upstream` → `https://github.com/ISSABELPBX/callcenter-issabel5.git`
 - Local push default: `origin`; the `upstream` push URL is disabled.
-- Latest owner-repository checkpoint: `1ae2948`
-- Latest staging source checkpoint: `1ae2948`
+- Latest owner-repository implementation checkpoint: `41c5217`
+- Latest staging source checkpoint: `41c5217`
